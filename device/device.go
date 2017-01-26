@@ -189,4 +189,5 @@ func (b *brocade_device) PasteConfiguration(configuration io.Reader) {
 			fmt.Print("+")
 		}
 	}
+	fmt.Print("\n")
 }
