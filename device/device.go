@@ -186,7 +186,7 @@ func (b *brocade_device) PasteConfiguration(configuration io.Reader) {
 		if b.debug {
 			log.Printf("Last output read was: %s\n", val)
 		} else {
-			log.Print("+")
+			fmt.Print("+")
 		}
 	}
 }
