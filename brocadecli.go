@@ -1,5 +1,5 @@
 // Copyright 2017 Jörg Kost All rights reserved.
-// joerg.kost@gmx.com
+// joerg.kost@gmx.com, jk@premium-datacenter.de
 // Use of this source code is governed by a GPLv2-style
 // license that can be found in the LICENSE file.
 
