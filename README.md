@@ -2,8 +2,11 @@ brocadecli is a tool that enables you to enter configuration changes to Brocade 
 
 For example, if you want to commit the cloudflare.txt ip prefix lists, you can enter the command:
 
+```bash 
 brocadecli.linux -enable enablepassword  -hostname rt1 -password nocpassword -username noc  -readtimeout 10s -filename cloudflare.txt
+```
 
+```bash
 ./brocadecli.linux -h
 Usage of ./brocadecli.linux:
   -debug
@@ -22,3 +25,4 @@ Usage of ./brocadecli.linux:
     	username (default "username")
   -writetimeout duration
     	timeout to stall after a write to cli
+```
