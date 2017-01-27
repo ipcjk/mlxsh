@@ -21,6 +21,8 @@ Usage of ./brocadecli.linux:
     	user password (default "password")
   -readtimeout duration
     	timeout for reading poll on cli select (default 10s)
+  -speedmode
+        Enable speed mode write, will ignore any output from the cli while writing
   -username string
     	username (default "username")
   -writetimeout duration
