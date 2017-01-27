@@ -53,5 +53,6 @@ func main() {
 		}
 	}
 
+	router.WriteConfiguration()
 	router.CloseConnection()
 }

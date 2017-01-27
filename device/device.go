@@ -181,6 +181,18 @@ func (b *brocade_device) readTillConfigPrompt() (string, error){
 	return b.readTill(b.sshConfigPrompt)
 }
 
+func (b *brocade_device) WriteConfiguration() {
+	b.write("write mem\n")
+	_, err := b.readTill("(config)#")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if b.debug {
+		log.Println("Write startup-config done")
+	}
+}
+
 func (b *brocade_device) CloseConnection() {
 	b.sshConnection.Close()
 }
