@@ -14,14 +14,10 @@ import (
 	"time"
 )
 
-var fileName string
-var hostName string
-var userName string
-var passWord string
-var enable string
-var readTimeout time.Duration
-var writeTimeout time.Duration
-var debug bool
+
+var passWord, userName, fileName, hostName, enable string
+var readTimeout, writeTimeout time.Duration
+var debug, speedMode bool
 
 func init() {
 	flag.StringVar(&fileName, "filename", "", "Configuration file to insert")
@@ -29,15 +25,17 @@ func init() {
 	flag.StringVar(&passWord, "password", "password", "user password")
 	flag.StringVar(&userName, "username", "username", "username")
 	flag.StringVar(&enable, "enable", "enablepassword", "enable password")
-	flag.DurationVar(&readTimeout, "readtimeout", time.Second*10, "timeout for reading poll on cli select")
+	flag.DurationVar(&readTimeout, "readtimeout", time.Second*15, "timeout for reading poll on cli select")
 	flag.DurationVar(&writeTimeout, "writetimeout", time.Millisecond*0, "timeout to stall after a write to cli")
 	flag.BoolVar(&debug, "debug", false,  "Enable debug for read / write")
+	flag.BoolVar(&speedMode, "speedmode", false,  "Enable speed mode write, will ignore any output from the cli while writing")
+
 }
 
 func main() {
 	flag.Parse()
 	router := device.Brocade(device.DEVICE_MLX, hostName, 22, enable, userName, passWord,
-		readTimeout,writeTimeout, debug)
+		readTimeout,writeTimeout, debug, speedMode)
 
 	router.ConnectPrivilegedMode()
 	/* router.ExecPrivilegedMode("show ip route ... longer") */
@@ -49,7 +47,7 @@ func main() {
 		if err != nil {
 			log.Printf("Cant open file: %s", err)
 		} else {
-			log.Println("START PROGRAMMING FROM CONFIGFILE:")
+			log.Println("START PROGRAMMING FROM CONFIGFILE")
 			router.PasteConfiguration(io.Reader(file))
 			log.Println("\nEND\n")
 		}
