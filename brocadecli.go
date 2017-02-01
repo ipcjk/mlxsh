@@ -29,7 +29,6 @@ func init() {
 	flag.DurationVar(&writeTimeout, "writetimeout", time.Millisecond*0, "timeout to stall after a write to cli")
 	flag.BoolVar(&debug, "debug", false,  "Enable debug for read / write")
 	flag.BoolVar(&speedMode, "speedmode", false,  "Enable speed mode write, will ignore any output from the cli while writing")
-
 }
 
 func main() {
@@ -38,7 +37,7 @@ func main() {
 		readTimeout,writeTimeout, debug, speedMode)
 
 	router.ConnectPrivilegedMode()
-	/* router.ExecPrivilegedMode("show ip route ... longer") */
+	router.SkipPageDisplayMode()
 	router.ConfigureTerminalMode()
 
 	if fileName != "" {
@@ -49,10 +48,13 @@ func main() {
 		} else {
 			log.Println("START PROGRAMMING FROM CONFIGFILE")
 			router.PasteConfiguration(io.Reader(file))
-			log.Println("\nEND\n")
+			log.Println("\nEND")
 		}
 	}
 
 	router.WriteConfiguration()
+	/* router.ExecPrivilegedMode("show ip route ... longer") */
+	/* router.ExecPrivilegedMode("clear ip bgp neighbor ... soft") */
+
 	router.CloseConnection()
 }

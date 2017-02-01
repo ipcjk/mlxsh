@@ -1,13 +1,13 @@
 package device
 
 import (
-	"golang.org/x/crypto/ssh"
+	"bufio"
 	"fmt"
-	"time"
+	"golang.org/x/crypto/ssh"
 	"io"
 	"log"
 	"strings"
-	"bufio"
+	"time"
 )
 
 const (
@@ -15,29 +15,29 @@ const (
 )
 
 type brocade_device struct {
-	model, port int
-	hostname, enable, username, password string
-	readTimeout time.Duration
-	writeTimeout time.Duration
-	debug bool
-	speedMode bool
+	model, port                                           int
+	hostname, enable, username, password                  string
+	readTimeout                                           time.Duration
+	writeTimeout                                          time.Duration
+	debug                                                 bool
+	speedMode                                             bool
 	unprivilegedPrompt, sshEnabledPrompt, sshConfigPrompt string
-	sshSession  *ssh.Session
-	sshConfig *ssh.ClientConfig
-	sshStdinPipe io.WriteCloser
-	sshStdoutPipe io.Reader
-	sshStdErrPipe io.Reader
-	sshConnection *ssh.Client
+	sshSession                                            *ssh.Session
+	sshConfig                                             *ssh.ClientConfig
+	sshStdinPipe                                          io.WriteCloser
+	sshStdoutPipe                                         io.Reader
+	sshStdErrPipe                                         io.Reader
+	sshConnection                                         *ssh.Client
 }
 
-func Brocade (model int, hostname string, port int, enable, username, password string, readTimeout time.Duration,
-	writeTimeout time.Duration, debug bool, speedMode bool)  *brocade_device  {
+func Brocade(model int, hostname string, port int, enable, username, password string, readTimeout time.Duration,
+	writeTimeout time.Duration, debug bool, speedMode bool) *brocade_device {
 	return &brocade_device{model: model, port: port, hostname: hostname, enable: enable, readTimeout: readTimeout,
 		speedMode: speedMode, writeTimeout: writeTimeout, debug: debug,
-		sshConfig: &ssh.ClientConfig{User:username, Auth:[]ssh.AuthMethod{ssh.Password(password)}}}
+		sshConfig: &ssh.ClientConfig{User: username, Auth: []ssh.AuthMethod{ssh.Password(password)}}}
 }
 
-func (b *brocade_device) ConnectPrivilegedMode()  {
+func (b *brocade_device) ConnectPrivilegedMode() {
 	var err error
 	b.sshConnection, err = ssh.Dial("tcp", fmt.Sprintf("%s:%d", b.hostname, b.port), b.sshConfig)
 	if err != nil {
@@ -75,7 +75,7 @@ func (b *brocade_device) ConnectPrivilegedMode()  {
 	}
 
 	b.sshEnabledPrompt = strings.Replace(b.unprivilegedPrompt, ">", "#", 1)
-	b.sshConfigPrompt = strings.Replace(b.unprivilegedPrompt,  ">", "(config)#", 1)
+	b.sshConfigPrompt = strings.Replace(b.unprivilegedPrompt, ">", "(config)#", 1)
 
 	if b.debug {
 		log.Printf("Enabled:(%s)\n", b.sshEnabledPrompt)
@@ -83,20 +83,20 @@ func (b *brocade_device) ConnectPrivilegedMode()  {
 		log.Printf("Config:(%s)\n", b.sshConfigPrompt)
 	}
 
-	if b.loginDialog()  && b.debug {
+	if b.loginDialog() && b.debug {
 		log.Println("Logged in")
 	}
 	return
 }
 
-func (b *brocade_device) loginDialog () bool {
+func (b *brocade_device) loginDialog() bool {
 	b.write("enable\n")
 	_, err := b.readTill("Password:")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	b.write(b.enable+"\n")
+	b.write(b.enable + "\n")
 	_, err = b.readTillEnabledPrompt()
 	if err != nil {
 		log.Fatal(err)
@@ -118,7 +118,7 @@ func (b *brocade_device) write(command string) {
 	time.Sleep(b.writeTimeout)
 }
 
-func (b *brocade_device) readTill(search string)  (string, error) {
+func (b *brocade_device) readTill(search string) (string, error) {
 	shortBuf := make([]byte, 1)
 	lineBuffer := make([]byte, 0, 32)
 	foundToken := make(chan struct{}, 0)
@@ -135,7 +135,7 @@ func (b *brocade_device) readTill(search string)  (string, error) {
 			b.sshSession.Close()
 			b.sshConnection.Close()
 			foundToken <- struct{}{}
-		case <- foundToken:
+		case <-foundToken:
 			return
 		}
 	}()
@@ -145,7 +145,7 @@ func (b *brocade_device) readTill(search string)  (string, error) {
 			return string(lineBuffer[:]), err
 		}
 		lineBuffer = append(lineBuffer, shortBuf[0])
-		if strings.Contains(string(lineBuffer[:]), search)  {
+		if strings.Contains(string(lineBuffer[:]), search) {
 			break
 		}
 	}
@@ -173,16 +173,21 @@ func (b *brocade_device) ExecPrivilegedMode(command string) {
 	}
 }
 
-func (b *brocade_device) readTillEnabledPrompt() (string, error){
+func (b *brocade_device) SkipPageDisplayMode() (string, error) {
+	b.write("skip-page-display\n")
 	return b.readTill(b.sshEnabledPrompt)
 }
 
-func (b *brocade_device) readTillConfigPrompt() (string, error){
+func (b *brocade_device) readTillEnabledPrompt() (string, error) {
+	return b.readTill(b.sshEnabledPrompt)
+}
+
+func (b *brocade_device) readTillConfigPrompt() (string, error) {
 	return b.readTill(b.sshConfigPrompt)
 }
 
 func (b *brocade_device) WriteConfiguration() {
-	b.write("write mem\n")
+	b.write("write memory\n")
 	_, err := b.readTill("(config)#")
 	if err != nil {
 		log.Fatal(err)
@@ -200,7 +205,7 @@ func (b *brocade_device) CloseConnection() {
 func (b *brocade_device) PasteConfiguration(configuration io.Reader) {
 	scanner := bufio.NewScanner(configuration)
 	for scanner.Scan() {
-		b.write(scanner.Text()+"\n")
+		b.write(scanner.Text() + "\n")
 		/* Wait till config prompt returns or not ? */
 		if !b.speedMode {
 			val, err := b.readTillConfigPrompt()
