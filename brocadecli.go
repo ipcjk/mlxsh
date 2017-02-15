@@ -8,12 +8,11 @@ package main
 import (
 	device "./device"
 	"flag"
-	"os"
-	"log"
 	"io"
+	"log"
+	"os"
 	"time"
 )
-
 
 var passWord, userName, fileName, hostName, enable string
 var readTimeout, writeTimeout time.Duration
@@ -27,14 +26,14 @@ func init() {
 	flag.StringVar(&enable, "enable", "enablepassword", "enable password")
 	flag.DurationVar(&readTimeout, "readtimeout", time.Second*15, "timeout for reading poll on cli select")
 	flag.DurationVar(&writeTimeout, "writetimeout", time.Millisecond*0, "timeout to stall after a write to cli")
-	flag.BoolVar(&debug, "debug", false,  "Enable debug for read / write")
-	flag.BoolVar(&speedMode, "speedmode", false,  "Enable speed mode write, will ignore any output from the cli while writing")
+	flag.BoolVar(&debug, "debug", false, "Enable debug for read / write")
+	flag.BoolVar(&speedMode, "speedmode", false, "Enable speed mode write, will ignore any output from the cli while writing")
 }
 
 func main() {
 	flag.Parse()
 	router := device.Brocade(device.DEVICE_MLX, hostName, 22, enable, userName, passWord,
-		readTimeout,writeTimeout, debug, speedMode)
+		readTimeout, writeTimeout, debug, speedMode)
 
 	router.ConnectPrivilegedMode()
 	router.SkipPageDisplayMode()

@@ -22,6 +22,7 @@ type brocade_device struct {
 	debug                                                 bool
 	speedMode                                             bool
 	unprivilegedPrompt, sshEnabledPrompt, sshConfigPrompt string
+	sshConfigPromptPre string
 	sshSession                                            *ssh.Session
 	sshConfig                                             *ssh.ClientConfig
 	sshStdinPipe                                          io.WriteCloser
@@ -76,11 +77,14 @@ func (b *brocade_device) ConnectPrivilegedMode() {
 
 	b.sshEnabledPrompt = strings.Replace(b.unprivilegedPrompt, ">", "#", 1)
 	b.sshConfigPrompt = strings.Replace(b.unprivilegedPrompt, ">", "(config)#", 1)
+	b.sshConfigPromptPre = strings.Replace(b.unprivilegedPrompt, ">", "(config", 1)
 
 	if b.debug {
 		log.Printf("Enabled:(%s)\n", b.sshEnabledPrompt)
 		log.Printf("Not-Enabled:(%s)\n", b.unprivilegedPrompt)
 		log.Printf("Config:(%s)\n", b.sshConfigPrompt)
+		log.Printf("ConfigSection:(%s)\n", b.sshConfigPromptPre)
+
 	}
 
 	if b.loginDialog() && b.debug {
@@ -186,6 +190,10 @@ func (b *brocade_device) readTillConfigPrompt() (string, error) {
 	return b.readTill(b.sshConfigPrompt)
 }
 
+func (b *brocade_device) readTillConfigPromptSection() (string, error) {
+	return b.readTill(b.sshConfigPromptPre)
+}
+
 func (b *brocade_device) WriteConfiguration() {
 	b.write("write memory\n")
 	_, err := b.readTill("(config)#")
@@ -208,7 +216,7 @@ func (b *brocade_device) PasteConfiguration(configuration io.Reader) {
 		b.write(scanner.Text() + "\n")
 		/* Wait till config prompt returns or not ? */
 		if !b.speedMode {
-			val, err := b.readTillConfigPrompt()
+			val, err := b.readTillConfigPromptSection()
 			if err != nil {
 				log.Fatal(err)
 			}
