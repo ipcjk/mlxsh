@@ -7,6 +7,16 @@ brocadecli.linux -enable enablepassword  -hostname rt1 -password nocpassword -us
 -readtimeout 10s -filename cloudflare.txt -speedmode
 ```
 
+Also it is a handy tool for daily maintenance tasks or cronjobs:
+
+```bash
+crontab -l
+ 0 4 * * *  brocadecli.linux -hostname rt1 -password nocpassword -username noc -enable enablepassword\
+  -filename /home/noc/brocade/shutdown_bgp
+```
+
+Command line arguments:
+
 ```bash
 ./brocadecli.linux -h
 Usage of ./brocadecli.linux:
