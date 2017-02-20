@@ -1,0 +1,2 @@
+sh ip bgp summary
+sh ipv6 bgp summary
