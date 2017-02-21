@@ -228,3 +228,15 @@ func (b *brocade_device) PasteConfiguration(configuration io.Reader) {
 	}
 	fmt.Print("\n")
 }
+
+func (b *brocade_device) RunCommandsFromReader(commands io.Reader) {
+	scanner := bufio.NewScanner(commands)
+	for scanner.Scan() {
+		b.write(scanner.Text() + "\n")
+		val, err := b.readTillEnabledPrompt()
+		if err != nil {
+				log.Fatal(err)
+		}
+		log.Printf("%s\n", val)
+	}
+}

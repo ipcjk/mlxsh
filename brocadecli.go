@@ -8,7 +8,6 @@ package main
 import (
 	device "./device"
 	"flag"
-	"io"
 	"log"
 	"os"
 	"time"
@@ -16,7 +15,7 @@ import (
 
 var passWord, userName, fileName, hostName, enable string
 var readTimeout, writeTimeout time.Duration
-var debug, speedMode bool
+var debug, speedMode, execMode bool
 
 func init() {
 	flag.StringVar(&fileName, "filename", "", "Configuration file to insert")
@@ -28,6 +27,7 @@ func init() {
 	flag.DurationVar(&writeTimeout, "writetimeout", time.Millisecond*0, "timeout to stall after a write to cli")
 	flag.BoolVar(&debug, "debug", false, "Enable debug for read / write")
 	flag.BoolVar(&speedMode, "speedmode", false, "Enable speed mode write, will ignore any output from the cli while writing")
+	flag.BoolVar(&execMode, "execmode", false, "Exec commands / input from filename instead of paste configuration")
 }
 
 func main() {
@@ -37,7 +37,6 @@ func main() {
 
 	router.ConnectPrivilegedMode()
 	router.SkipPageDisplayMode()
-	router.ConfigureTerminalMode()
 
 	if fileName != "" {
 		file, err := os.Open(fileName)
@@ -45,13 +44,18 @@ func main() {
 		if err != nil {
 			log.Printf("Cant open file: %s", err)
 		} else {
-			log.Println("START PROGRAMMING FROM CONFIGFILE")
-			router.PasteConfiguration(io.Reader(file))
-			log.Println("\nEND")
+			if execMode == true {
+				router.RunCommandsFromReader(file)
+			} else {
+				router.ConfigureTerminalMode()
+				log.Println("START PROGRAMMING FROM CONFIGFILE")
+				router.PasteConfiguration(file)
+				log.Println("\nEND")
+				router.WriteConfiguration()
+			}
 		}
 	}
 
-	router.WriteConfiguration()
 	/* router.ExecPrivilegedMode("show ip route ... longer") */
 	/* router.ExecPrivilegedMode("clear ip bgp neighbor ... soft") */
 
