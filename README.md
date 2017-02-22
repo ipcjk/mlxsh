@@ -20,12 +20,13 @@ crontab -l
 Command line arguments:
 
 ```bash
-./brocadecli.linux -h
-Usage of ./brocadecli.linux:
+Usage of ./brocadecli:
   -debug
     	Enable debug for read / write
   -enable string
     	enable password (default "enablepassword")
+  -execmode
+    	Exec commands / input from filename instead of paste configuration
   -filename string
     	Configuration file to insert
   -hostname string
@@ -33,9 +34,9 @@ Usage of ./brocadecli.linux:
   -password string
     	user password (default "password")
   -readtimeout duration
-    	timeout for reading poll on cli select (default 10s)
+    	timeout for reading poll on cli select (default 15s)
   -speedmode
-        Enable speed mode write, will ignore any output from the cli while writing
+    	Enable speed mode write, will ignore any output/feedback from the cli while writing
   -username string
     	username (default "username")
   -writetimeout duration
