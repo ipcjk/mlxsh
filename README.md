@@ -17,6 +17,16 @@ crontab -l
   -filename /home/noc/brocade/shutdown_bgp
 ```
 
+If you want to run commands in the executable mode, be sure to set the parameter at start, else the tool\
+ will drop into config mode:
+ 
+ 
+```bash
+crontab -l
+ 0 4 * * *  brocadecli.linux -hostname rt1 -password nocpassword -username noc -enable enablepassword\
+  -filename /home/noc/brocade_scripts/bgp_sum -execmode 
+```
+
 Command line arguments:
 
 ```bash
