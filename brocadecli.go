@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-var passWord, userName, fileName, hostName, enable string
+var passWord, userName, fileName, hostName, enable, logDir string
 var readTimeout, writeTimeout time.Duration
 var debug, speedMode, execMode bool
 
@@ -28,6 +28,8 @@ func init() {
 	flag.BoolVar(&debug, "debug", false, "Enable debug for read / write")
 	flag.BoolVar(&speedMode, "speedmode", false, "Enable speed mode write, will ignore any output from the cli while writing")
 	flag.BoolVar(&execMode, "execmode", false, "Exec commands / input from filename instead of paste configuration")
+	flag.StringVar(&logDir, "logdir", "", "Record session into logDir, automatically gzip")
+
 }
 
 func main() {
@@ -48,9 +50,7 @@ func main() {
 				router.RunCommandsFromReader(file)
 			} else {
 				router.ConfigureTerminalMode()
-				log.Println("START PROGRAMMING FROM CONFIGFILE")
 				router.PasteConfiguration(file)
-				log.Println("\nEND")
 				router.WriteConfiguration()
 			}
 		}
