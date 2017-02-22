@@ -128,26 +128,25 @@ func (b *brocade_device) readTill(search string) (string, error) {
 	foundToken := make(chan struct{}, 0)
 	defer close(foundToken)
 
-	/* Start timeout thread */
-	go func() {
-		select {
-		case <-(time.After(b.readTimeout)):
-			log.Printf("Timeout waiting for (%s)", search)
-			if b.debug {
-				log.Println(string(lineBuffer[:]))
-			}
-			b.sshSession.Close()
-			b.sshConnection.Close()
-			foundToken <- struct{}{}
-		case <-foundToken:
-			return
-		}
-	}()
-
 	for {
+		/* Reset the timer, when we received at least 1 byte */
+		go func() {
+			select {
+			case <-(time.After(b.readTimeout)):
+				if b.debug {
+					log.Println(string(lineBuffer[:]))
+				}
+				b.sshSession.Close()
+				b.sshConnection.Close()
+				foundToken <- struct{}{}
+			case <-foundToken:
+				return
+			}
+		}()
 		if _, err := io.ReadAtLeast(b.sshStdoutPipe, shortBuf, 1); err != nil {
 			return string(lineBuffer[:]), err
 		}
+		foundToken <- struct{}{}
 		lineBuffer = append(lineBuffer, shortBuf[0])
 		if strings.Contains(string(lineBuffer[:]), search) {
 			break
