@@ -16,6 +16,8 @@ import (
 var passWord, userName, fileName, hostName, enable, logDir string
 var readTimeout, writeTimeout time.Duration
 var debug, speedMode, execMode bool
+var outputFile string
+
 
 func init() {
 	flag.StringVar(&fileName, "filename", "", "Configuration file to insert")
@@ -29,7 +31,7 @@ func init() {
 	flag.BoolVar(&speedMode, "speedmode", false, "Enable speed mode write, will ignore any output from the cli while writing")
 	flag.BoolVar(&execMode, "execmode", false, "Exec commands / input from filename instead of paste configuration")
 	flag.StringVar(&logDir, "logdir", "", "Record session into logDir, automatically gzip")
-
+	flag.StringVar(&outputFile, "outputfile", "", "Output file, else stdout")
 }
 
 func main() {

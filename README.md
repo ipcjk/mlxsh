@@ -52,3 +52,9 @@ Usage of ./brocadecli:
   -writetimeout duration
     	timeout to stall after a write to cli
 ```
+
+Run brocadecli with the help of docker:
+```bash
+docker run -ti joerg/brocadecli /bin/sh
+./brocadecli.linux -h
+```
