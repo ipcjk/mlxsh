@@ -18,7 +18,6 @@ var readTimeout, writeTimeout time.Duration
 var debug, speedMode, execMode bool
 var outputFile string
 
-
 func init() {
 	flag.StringVar(&fileName, "filename", "", "Configuration file to insert")
 	flag.StringVar(&hostName, "hostname", "rt1", "Router hostname")

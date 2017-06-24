@@ -22,7 +22,7 @@ type brocade_device struct {
 	debug                                                 bool
 	speedMode                                             bool
 	unprivilegedPrompt, sshEnabledPrompt, sshConfigPrompt string
-	sshConfigPromptPre string
+	sshConfigPromptPre                                    string
 	sshSession                                            *ssh.Session
 	sshConfig                                             *ssh.ClientConfig
 	sshStdinPipe                                          io.WriteCloser
@@ -234,7 +234,7 @@ func (b *brocade_device) RunCommandsFromReader(commands io.Reader) {
 		b.write(scanner.Text() + "\n")
 		val, err := b.readTillEnabledPrompt()
 		if err != nil {
-				log.Fatal(err)
+			log.Fatal(err)
 		}
 		log.Printf("%s\n", val)
 	}
