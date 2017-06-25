@@ -88,14 +88,13 @@ func main() {
 
 	/* router.ExecPrivilegedMode("show ip route ... longer") */
 	/* router.ExecPrivilegedMode("clear ip bgp neighbor ... soft") */
-
 	router.CloseConnection()
 }
 
 func loadConfig() {
 	source, err := ioutil.ReadFile(configFile)
 	if err != nil {
-		log.Fatal(err)
+		return 
 	}
 
 	err = yaml.Unmarshal(source, &Hosts)
@@ -124,5 +123,4 @@ func loadConfig() {
 			}
 		}
 	}
-
 }
