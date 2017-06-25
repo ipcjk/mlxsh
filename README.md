@@ -2,7 +2,9 @@
 
 brocadecli is a tool that enables you to enter configuration changes to Brocade Netiron devices (MLX, MLXE, CER) via ssh.
 
-For example, if you want to commit the cloudflare.txt ip prefix lists, you can enter the command:
+brocadecli takes command line arguments or a path to a configuration file. 
+
+For example, if you want to quickly commit the cloudflare.txt ip prefix lists, you can enter the command:
 
 ```bash 
 brocadecli.linux -enable enablepassword  -hostname rt1 -password nocpassword -username noc \
@@ -52,6 +54,8 @@ Usage of ./brocadecli:
   -writetimeout duration
     	timeout to stall after a write to cli
 ```
+
+
 
 Run brocadecli with the help of docker:
 ```bash
