@@ -11,16 +11,34 @@ import (
 	"log"
 	"os"
 	"time"
+	"gopkg.in/yaml.v1"
+	"fmt"
+	"io/ioutil"
 )
+
+type HostFile struct {
+	Hostname        string `yaml:"Hostname"`
+	Username        string `yaml:"Username"`
+	Password        string `yaml:"Password"`
+	EnablePassword  string `yaml:"EnablePassword"`
+	DeviceType      string `yaml:"DeviceType"`
+	KeyFile         string `yaml:"KeyFile"`
+	StrictHostCheck bool `yaml:"StrictHostCheck"`
+	Filename        string `yaml:"FileName"`
+	ExecMode        string `yaml:"ExecMode"`
+	SpeedMode       string `yaml:"SpeedMode"`
+}
+
+var Hosts []HostFile
 
 var passWord, userName, fileName, hostName, enable, logDir string
 var readTimeout, writeTimeout time.Duration
 var debug, speedMode, execMode bool
-var outputFile string
+var outputFile, configFile string
 
 func init() {
 	flag.StringVar(&fileName, "filename", "", "Configuration file to insert")
-	flag.StringVar(&hostName, "hostname", "rt1", "Router hostname")
+	flag.StringVar(&hostName, "hostname", "dus-rt1.premium-datacenter.eu", "Router hostname")
 	flag.StringVar(&passWord, "password", "password", "user password")
 	flag.StringVar(&userName, "username", "username", "username")
 	flag.StringVar(&enable, "enable", "enablepassword", "enable password")
@@ -31,15 +49,28 @@ func init() {
 	flag.BoolVar(&execMode, "execmode", false, "Exec commands / input from filename instead of paste configuration")
 	flag.StringVar(&logDir, "logdir", "", "Record session into logDir, automatically gzip")
 	flag.StringVar(&outputFile, "outputfile", "", "Output file, else stdout")
+
+	if os.Getenv("JK") {
+		flag.StringVar(&configFile, "configfile", "config_jk.yaml", "Input file in yaml for username,password and host configuration if not specified on command-line")
+	} else {
+		flag.StringVar(&configFile, "configfile", "config.yaml", "Input file in yaml for username,password and host configuration if not specified on command-line")
+	}
+
+
+	flag.Parse()
+	if configFile != "" {
+		loadConfig()
+	}
+
 }
 
 func main() {
-	flag.Parse()
 	router := device.Brocade(device.DEVICE_MLX, hostName, 22, enable, userName, passWord,
 		readTimeout, writeTimeout, debug, speedMode)
 
 	router.ConnectPrivilegedMode()
 	router.SkipPageDisplayMode()
+	router.GetPromptMode()
 
 	if fileName != "" {
 		file, err := os.Open(fileName)
@@ -61,4 +92,38 @@ func main() {
 	/* router.ExecPrivilegedMode("clear ip bgp neighbor ... soft") */
 
 	router.CloseConnection()
+}
+
+func loadConfig() {
+	source, err := ioutil.ReadFile(configFile)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = yaml.Unmarshal(source, &Hosts)
+	if err != nil {
+		log.Fatalf("error: %v", err)
+	}
+
+	for _,Host := range Hosts {
+		fmt.Println(hostName)
+		if Host.Hostname == hostName {
+			if debug  {
+				log.Println("Overwrite cli settings for " + hostName + " from " + configFile)
+			}
+			passWord = Host.Password
+			userName = Host.Username
+			enable =  Host.EnablePassword
+			fileName = Host.Filename
+			fmt.Println(Host.ExecMode)
+
+			if Host.ExecMode == "True" {
+				execMode = true
+			}
+			if Host.SpeedMode == "True" {
+				speedMode = true
+			}
+		}
+	}
+
 }

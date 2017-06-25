@@ -15,26 +15,28 @@ const (
 )
 
 type brocade_device struct {
-	model, port                                           int
-	hostname, enable, username, password                  string
-	readTimeout                                           time.Duration
-	writeTimeout                                          time.Duration
-	debug                                                 bool
-	speedMode                                             bool
-	unprivilegedPrompt, sshEnabledPrompt, sshConfigPrompt string
-	sshConfigPromptPre                                    string
-	sshSession                                            *ssh.Session
-	sshConfig                                             *ssh.ClientConfig
-	sshStdinPipe                                          io.WriteCloser
-	sshStdoutPipe                                         io.Reader
-	sshStdErrPipe                                         io.Reader
-	sshConnection                                         *ssh.Client
+	model, port                                              int
+	hostname, enable, username, password                     string
+	readTimeout                                              time.Duration
+	writeTimeout                                             time.Duration
+	debug                                                    bool
+	speedMode                                                bool
+	sshUnprivilegedPrompt, sshEnabledPrompt, sshConfigPrompt string
+	sshConfigPromptPre                                       string
+	sshSession                                               *ssh.Session
+	sshConfig                                                *ssh.ClientConfig
+	sshStdinPipe                                             io.WriteCloser
+	sshStdoutPipe                                            io.Reader
+	sshStdErrPipe                                            io.Reader
+	sshConnection                                            *ssh.Client
+	promptModes                                              map[string]string
+	promptMode                                               string
 }
 
 func Brocade(model int, hostname string, port int, enable, username, password string, readTimeout time.Duration,
 	writeTimeout time.Duration, debug bool, speedMode bool) *brocade_device {
 	return &brocade_device{model: model, port: port, hostname: hostname, enable: enable, readTimeout: readTimeout,
-		speedMode: speedMode, writeTimeout: writeTimeout, debug: debug,
+		speedMode: speedMode, writeTimeout: writeTimeout, debug: debug, promptModes: make(map[string]string),
 		sshConfig: &ssh.ClientConfig{User: username, Auth: []ssh.AuthMethod{ssh.Password(password)}}}
 }
 
@@ -70,21 +72,25 @@ func (b *brocade_device) ConnectPrivilegedMode() {
 		panic(err)
 	}
 
-	b.unprivilegedPrompt, err = b.readTill(">")
+	b.sshUnprivilegedPrompt, err = b.readTill([]string{">", "foobar"})
 	if err != nil {
 		log.Fatal("Cant find login screen")
 	}
 
-	b.sshEnabledPrompt = strings.Replace(b.unprivilegedPrompt, ">", "#", 1)
-	b.sshConfigPrompt = strings.Replace(b.unprivilegedPrompt, ">", "(config)#", 1)
-	b.sshConfigPromptPre = strings.Replace(b.unprivilegedPrompt, ">", "(config", 1)
+	b.sshEnabledPrompt = strings.Replace(b.sshUnprivilegedPrompt, ">", "#", 1)
+	b.sshConfigPrompt = strings.Replace(b.sshUnprivilegedPrompt, ">", "(config)#", 1)
+	b.sshConfigPromptPre = strings.Replace(b.sshUnprivilegedPrompt, ">", "(config", 1)
+
+	b.promptModes["sshEnabled"] = b.sshEnabledPrompt
+	b.promptModes["sshConfig"] = b.sshConfigPrompt
+	b.promptModes["sshConfigPre"] = b.sshConfigPromptPre
+	b.promptModes["sshNotEnabled"] = b.sshUnprivilegedPrompt
 
 	if b.debug {
 		log.Printf("Enabled:(%s)\n", b.sshEnabledPrompt)
-		log.Printf("Not-Enabled:(%s)\n", b.unprivilegedPrompt)
+		log.Printf("Not-Enabled:(%s)\n", b.sshUnprivilegedPrompt)
 		log.Printf("Config:(%s)\n", b.sshConfigPrompt)
 		log.Printf("ConfigSection:(%s)\n", b.sshConfigPromptPre)
-
 	}
 
 	if b.loginDialog() && b.debug {
@@ -95,7 +101,7 @@ func (b *brocade_device) ConnectPrivilegedMode() {
 
 func (b *brocade_device) loginDialog() bool {
 	b.write("enable\n")
-	_, err := b.readTill("Password:")
+	_, err := b.readTill([]string{"Password:"})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -104,8 +110,9 @@ func (b *brocade_device) loginDialog() bool {
 	_, err = b.readTillEnabledPrompt()
 	if err != nil {
 		log.Fatal(err)
-
 	}
+
+	b.promptMode = "sshEnabled"
 
 	return true
 }
@@ -114,20 +121,21 @@ func (b *brocade_device) write(command string) {
 	_, err := b.sshStdinPipe.Write([]byte(command))
 	if err != nil {
 		log.Fatal(err)
-
 	}
+
 	if b.debug {
 		fmt.Printf("Send command: %s", command)
 	}
 	time.Sleep(b.writeTimeout)
 }
 
-func (b *brocade_device) readTill(search string) (string, error) {
+func (b *brocade_device) readTill(search []string) (string, error) {
 	shortBuf := make([]byte, 1)
 	lineBuffer := make([]byte, 0, 32)
 	foundToken := make(chan struct{}, 0)
 	defer close(foundToken)
 
+WaitInput:
 	for {
 		/* Reset the timer, when we received at least 1 byte */
 		go func() {
@@ -138,7 +146,6 @@ func (b *brocade_device) readTill(search string) (string, error) {
 				}
 				b.sshSession.Close()
 				b.sshConnection.Close()
-				foundToken <- struct{}{}
 			case <-foundToken:
 				return
 			}
@@ -148,9 +155,12 @@ func (b *brocade_device) readTill(search string) (string, error) {
 		}
 		foundToken <- struct{}{}
 		lineBuffer = append(lineBuffer, shortBuf[0])
-		if strings.Contains(string(lineBuffer[:]), search) {
-			break
+		for x := range search {
+			if strings.Contains(string(lineBuffer[:]), search[x]) {
+				break WaitInput
+			}
 		}
+
 	}
 
 	return string(lineBuffer[:]), nil
@@ -158,7 +168,7 @@ func (b *brocade_device) readTill(search string) (string, error) {
 
 func (b *brocade_device) ConfigureTerminalMode() {
 	b.write("conf t\n")
-	_, err := b.readTill("(config)#")
+	_, err := b.readTill([]string{"(config)#"})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -169,6 +179,10 @@ func (b *brocade_device) ConfigureTerminalMode() {
 }
 
 func (b *brocade_device) ExecPrivilegedMode(command string) {
+	if err := b.SwitchMode("sshEnabled"); err != nil {
+		log.Fatal("Cant switch to enabled mode")
+	}
+
 	b.write(command + "\n")
 	_, err := b.readTillEnabledPrompt()
 	if err != nil {
@@ -177,25 +191,89 @@ func (b *brocade_device) ExecPrivilegedMode(command string) {
 }
 
 func (b *brocade_device) SkipPageDisplayMode() (string, error) {
+	if err := b.SwitchMode("sshEnabled"); err != nil {
+		log.Fatal("Cant switch to enabled mode")
+	}
+
 	b.write("skip-page-display\n")
-	return b.readTill(b.sshEnabledPrompt)
+	return b.readTill([]string{b.sshEnabledPrompt})
 }
 
 func (b *brocade_device) readTillEnabledPrompt() (string, error) {
-	return b.readTill(b.sshEnabledPrompt)
+	return b.readTill([]string{b.sshEnabledPrompt})
 }
 
 func (b *brocade_device) readTillConfigPrompt() (string, error) {
-	return b.readTill(b.sshConfigPrompt)
+	return b.readTill([]string{b.sshConfigPrompt})
 }
 
 func (b *brocade_device) readTillConfigPromptSection() (string, error) {
-	return b.readTill(b.sshConfigPromptPre)
+	return b.readTill([]string{b.sshConfigPromptPre})
+}
+
+func (b *brocade_device) SwitchMode(targetMode string) error {
+	if b.promptMode == targetMode {
+		return nil
+	}
+
+	switch b.promptMode {
+	case "sshEnabled":
+		if targetMode == "sshConfig" {
+			b.ConfigureTerminalMode()
+		} else {
+			b.write("exit\n")
+		}
+	case "sshConfig":
+		if targetMode == "sshEnabled" {
+			b.write("end\n")
+		} else {
+			b.write("end\n")
+			b.write("exit\n")
+		}
+	case "sshNotEnabled":
+		if targetMode == "sshEnabled" {
+			fmt.Println("LOGIN")
+		} else {
+			fmt.Println("LOGIN & CONF Mode")
+		}
+
+	}
+
+	return nil
+}
+
+func (b *brocade_device) GetPromptMode() error {
+	b.write("\n")
+
+	mode, err := b.readTill([]string{b.sshConfigPrompt, b.sshEnabledPrompt, b.sshUnprivilegedPrompt})
+	if err != nil {
+		log.Fatalf("Cant find command line mode: %s", err)
+	}
+
+	mode = strings.TrimSpace(mode)
+
+	switch mode {
+	case b.promptModes["sshEnabled"]:
+		b.promptMode = "sshEnabled"
+	case b.promptModes["sshConfig"]:
+		b.promptMode = "sshConfig"
+	case b.promptModes["sshNotEnabled"]:
+		b.promptMode = "sshNotEnabled"
+	default:
+		b.promptMode = "unknown"
+	}
+
+	return nil
+
 }
 
 func (b *brocade_device) WriteConfiguration() {
+	if err := b.SwitchMode("sshEnabled"); err != nil {
+		log.Fatal("Cant switch to privileged mode")
+	}
+
 	b.write("write memory\n")
-	_, err := b.readTill("(config)#")
+	_, err := b.readTill([]string{"(config)#", "Write startup-config done."})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -210,6 +288,10 @@ func (b *brocade_device) CloseConnection() {
 }
 
 func (b *brocade_device) PasteConfiguration(configuration io.Reader) {
+	if err := b.SwitchMode("sshConfig"); err != nil {
+		log.Fatal("Cant switch to configuration mode")
+	}
+
 	scanner := bufio.NewScanner(configuration)
 	for scanner.Scan() {
 		b.write(scanner.Text() + "\n")
@@ -229,6 +311,10 @@ func (b *brocade_device) PasteConfiguration(configuration io.Reader) {
 }
 
 func (b *brocade_device) RunCommandsFromReader(commands io.Reader) {
+	if err := b.SwitchMode("sshEnabled"); err != nil {
+		log.Fatal("Cant switch to privileged mode")
+	}
+
 	scanner := bufio.NewScanner(commands)
 	for scanner.Scan() {
 		b.write(scanner.Text() + "\n")
