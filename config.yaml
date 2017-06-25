@@ -13,5 +13,3 @@
   Password: mucpass
   EnablePassword: enablePass
   DeviceType: MLX
-  KeyFile: key
-  StrictHostCheck: No

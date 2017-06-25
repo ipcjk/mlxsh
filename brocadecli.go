@@ -8,12 +8,11 @@ package main
 import (
 	device "./device"
 	"flag"
+	"gopkg.in/yaml.v1"
+	"io/ioutil"
 	"log"
 	"os"
 	"time"
-	"gopkg.in/yaml.v1"
-	"fmt"
-	"io/ioutil"
 )
 
 type HostFile struct {
@@ -23,7 +22,7 @@ type HostFile struct {
 	EnablePassword  string `yaml:"EnablePassword"`
 	DeviceType      string `yaml:"DeviceType"`
 	KeyFile         string `yaml:"KeyFile"`
-	StrictHostCheck bool `yaml:"StrictHostCheck"`
+	StrictHostCheck bool   `yaml:"StrictHostCheck"`
 	Filename        string `yaml:"FileName"`
 	ExecMode        string `yaml:"ExecMode"`
 	SpeedMode       string `yaml:"SpeedMode"`
@@ -38,7 +37,7 @@ var outputFile, configFile string
 
 func init() {
 	flag.StringVar(&fileName, "filename", "", "Configuration file to insert")
-	flag.StringVar(&hostName, "hostname", "dus-rt1.premium-datacenter.eu", "Router hostname")
+	flag.StringVar(&hostName, "hostname", "rt1", "Router hostname")
 	flag.StringVar(&passWord, "password", "password", "user password")
 	flag.StringVar(&userName, "username", "username", "username")
 	flag.StringVar(&enable, "enable", "enablepassword", "enable password")
@@ -50,12 +49,11 @@ func init() {
 	flag.StringVar(&logDir, "logdir", "", "Record session into logDir, automatically gzip")
 	flag.StringVar(&outputFile, "outputfile", "", "Output file, else stdout")
 
-	if os.Getenv("JK") {
+	if os.Getenv("JK") != "" {
 		flag.StringVar(&configFile, "configfile", "config_jk.yaml", "Input file in yaml for username,password and host configuration if not specified on command-line")
 	} else {
 		flag.StringVar(&configFile, "configfile", "config.yaml", "Input file in yaml for username,password and host configuration if not specified on command-line")
 	}
-
 
 	flag.Parse()
 	if configFile != "" {
@@ -105,17 +103,18 @@ func loadConfig() {
 		log.Fatalf("error: %v", err)
 	}
 
-	for _,Host := range Hosts {
-		fmt.Println(hostName)
+	for _, Host := range Hosts {
 		if Host.Hostname == hostName {
-			if debug  {
+			if debug {
 				log.Println("Overwrite cli settings for " + hostName + " from " + configFile)
 			}
 			passWord = Host.Password
 			userName = Host.Username
-			enable =  Host.EnablePassword
-			fileName = Host.Filename
-			fmt.Println(Host.ExecMode)
+			enable = Host.EnablePassword
+
+			if Host.Filename != "" {
+				fileName = Host.Filename
+			}
 
 			if Host.ExecMode == "True" {
 				execMode = true
