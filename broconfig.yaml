@@ -6,7 +6,7 @@
   KeyFile: key
   StrictHostCheck: False
   SpeedMode: False
-  FileName: brocade_scripts/bgp_sum
+  FileName: scripts/bgp_sum
   ExecMode: True
 - Hostname: rt2
   Username: mucuser

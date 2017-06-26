@@ -71,7 +71,7 @@ func (b *brocade_device) ConnectPrivilegedMode() (err error)  {
 		return err
 	}
 
-	b.sshUnprivilegedPrompt, err = b.readTill([]string{">", "foobar"})
+	b.sshUnprivilegedPrompt, err = b.readTill([]string{">"})
 	if err != nil {
 		return err
 	}
@@ -140,6 +140,7 @@ WaitInput:
 		go func() {
 			select {
 			case <-(time.After(b.readTimeout)):
+				log.Println("Channel abgelaufen")
 				if b.debug {
 					log.Println(string(lineBuffer[:]))
 				}
@@ -149,8 +150,11 @@ WaitInput:
 				return
 			}
 		}()
-		if _, err := io.ReadAtLeast(b.sshStdoutPipe, shortBuf, 1); err != nil {
-			return string(lineBuffer[:]), err
+		var err error
+		if _, err = io.ReadAtLeast(b.sshStdoutPipe, shortBuf, 1); err != nil {
+			if err != io.EOF {
+				return "", err
+			}
 		}
 		foundToken <- struct{}{}
 		lineBuffer = append(lineBuffer, shortBuf[0])
@@ -311,18 +315,19 @@ func (b *brocade_device) PasteConfiguration(configuration io.Reader) (err error)
 	return
 }
 
-func (b *brocade_device) RunCommandsFromReader(commands io.Reader) {
-	if err := b.SwitchMode("sshEnabled"); err != nil {
-		log.Fatal("Cant switch to privileged mode")
+func (b *brocade_device) RunCommandsFromReader(commands io.Reader) (err error){
+	if err = b.SwitchMode("sshEnabled"); err != nil {
+		return fmt.Errorf("Cant switch to privileged mode: %s", err)
 	}
 
 	scanner := bufio.NewScanner(commands)
 	for scanner.Scan() {
 		b.write(scanner.Text() + "\n")
 		val, err := b.readTillEnabledPrompt()
-		if err != nil {
-			log.Fatal(err)
+		if err != nil && err != io.EOF {
+			return err
 		}
 		log.Printf("%s\n", val)
 	}
+	return err
 }

@@ -81,7 +81,7 @@ When brocadecli is reading a yaml-configuration file, it will overwrite any give
        KeyFile: key
        StrictHostCheck: False
        SpeedMode: False
-       FileName: brocade_scripts/bgp_sum
+       FileName: scripts
        ExecMode: True
    -   Hostname: rt2
        Username: mucuser

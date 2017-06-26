@@ -1,0 +1,8 @@
+vlan 123 name VLAN123
+ex
+vlan 124 name VLAN124
+ex
+vlan 125 name VLAN125
+ex
+vlan 126 name VLAN126
+ex
