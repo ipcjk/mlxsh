@@ -7,6 +7,7 @@ package main
 
 import (
 	device "./device"
+	libhost "./libhost"
 	"flag"
 	"gopkg.in/yaml.v1"
 	"io/ioutil"
@@ -15,43 +16,26 @@ import (
 	"time"
 )
 
-type HostEntry struct {
-	Hostname        string `yaml:"Hostname"`
-	Username        string `yaml:"Username"`
-	Password        string `yaml:"Password"`
-	EnablePassword  string `yaml:"EnablePassword"`
-	DeviceType      string `yaml:"DeviceType"`
-	KeyFile         string `yaml:"KeyFile"`
-	StrictHostCheck bool   `yaml:"StrictHostCheck"`
-	Filename        string `yaml:"FileName"`
-	ExecMode        string `yaml:"ExecMode"`
-	SpeedMode       string `yaml:"SpeedMode"`
-	ReadTimeout time  `yaml:Readtimeout`
-	WriteTimeout time  `yaml:Writetimeout`
-}
-
-var Hosts []HostEntry
-
-var passWord, userName, fileName, hostName, enable, logDir string
-var readTimeout, writeTimeout time.Duration
-var debug, speedMode, execMode bool
-var outputFile, configFile string
+var targetHost libhost.HostEntry
+var debug bool
+var logDir, outputFile, configFile string
 
 func init() {
-	flag.StringVar(&fileName, "filename", "", "Configuration file to insert")
-	flag.StringVar(&hostName, "hostname", "rt1", "Router hostname")
-	flag.StringVar(&passWord, "password", "password", "user password")
-	flag.StringVar(&userName, "username", "username", "username")
-	flag.StringVar(&enable, "enable", "enablepassword", "enable password")
-	flag.DurationVar(&readTimeout, "readtimeout", time.Second*15, "timeout for reading poll on cli select")
-	flag.DurationVar(&writeTimeout, "writetimeout", time.Millisecond*0, "timeout to stall after a write to cli")
+	flag.StringVar(&targetHost.Filename, "filename", "", "Configuration file to insert")
+	flag.StringVar(&targetHost.Hostname, "hostname", "rt1", "Router hostname")
+	flag.StringVar(&targetHost.Password, "password", "password", "user password")
+	flag.StringVar(&targetHost.Username, "username", "username", "username")
+	flag.StringVar(&targetHost.EnablePassword, "enable", "enablepassword", "enable password")
+	flag.DurationVar(&targetHost.ReadTimeout, "readtimeout", time.Second*15, "timeout for reading poll on cli select")
+	flag.DurationVar(&targetHost.WriteTimeout, "writetimeout", time.Millisecond*0, "timeout to stall after a write to cli")
 	flag.BoolVar(&debug, "debug", false, "Enable debug for read / write")
-	flag.BoolVar(&speedMode, "speedmode", false, "Enable speed mode write, will ignore any output from the cli while writing")
-	flag.BoolVar(&execMode, "execmode", false, "Exec commands / input from filename instead of paste configuration")
+	flag.BoolVar(&targetHost.SpeedMode, "speedmode", false, "Enable speed mode write, will ignore any output from the cli while writing")
+	flag.BoolVar(&targetHost.ExecMode, "execmode", false, "Exec commands / input from filename instead of paste configuration")
 	flag.StringVar(&logDir, "logdir", "", "Record session into logDir, automatically gzip")
 	flag.StringVar(&outputFile, "outputfile", "", "Output file, else stdout")
 
 	if os.Getenv("JK") != "" {
+		log.Println("Developer configuration active")
 		flag.StringVar(&configFile, "configfile", "config_jk.yaml", "Input file in yaml for username,password and host configuration if not specified on command-line")
 	} else {
 		flag.StringVar(&configFile, "configfile", "config.yaml", "Input file in yaml for username,password and host configuration if not specified on command-line")
@@ -66,8 +50,8 @@ func init() {
 
 func main() {
 	var err error
-	router := device.Brocade(device.DEVICE_MLX, hostName, 22, enable, userName, passWord,
-		readTimeout, writeTimeout, debug, speedMode)
+	router := device.Brocade(device.DEVICE_MLX, targetHost.Hostname, 22, targetHost.EnablePassword, targetHost.Username, targetHost.Password,
+		targetHost.ReadTimeout, targetHost.WriteTimeout, debug, targetHost.SpeedMode)
 
 	if err = router.ConnectPrivilegedMode(); err != nil {
 		log.Fatal(err)
@@ -81,13 +65,13 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if fileName != "" {
-		file, err := os.Open(fileName)
+	if targetHost.Filename != "" {
+		file, err := os.Open(targetHost.Filename)
 		defer file.Close()
 		if err != nil {
 			log.Printf("Cant open file: %s", err)
 		} else {
-			if execMode == true {
+			if targetHost.ExecMode == true {
 				router.RunCommandsFromReader(file)
 			} else {
 				router.ConfigureTerminalMode()
@@ -103,44 +87,52 @@ func main() {
 }
 
 func loadConfig() {
+	var hostsConfig []libhost.HostEntry
+
 	source, err := ioutil.ReadFile(configFile)
 	if err != nil {
 		return
 	}
 
-	err = yaml.Unmarshal(source, &Hosts)
+	err = yaml.Unmarshal(source, &hostsConfig)
 	if err != nil {
 		log.Fatalf("error: %v", err)
 	}
 
-	for _, Host := range Hosts {
-		if Host.Hostname == hostName {
+	for _, Host := range hostsConfig {
+		if Host.Hostname == targetHost.Hostname {
 			if debug {
-				log.Println("Overwrite cli settings for " + hostName + " from " + configFile)
+				log.Println("Overwrite cli settings for " + targetHost.Hostname + " from " + configFile)
 			}
 
+			/* Better copy structure?
+			but then we will copy the booleans?
+			*/
+
 			if Host.Password != "" {
-				passWord = Host.Password
+				targetHost.Password = Host.Password
 			}
 
 			if Host.EnablePassword != "" {
-				enable = Host.EnablePassword
+				targetHost.EnablePassword = Host.EnablePassword
 			}
 
 			if Host.Username != "" {
-				userName = Host.Username
+				targetHost.Username = Host.Username
 			}
 
 			if Host.Filename != "" {
-				fileName = Host.Filename
+				targetHost.Filename = Host.Filename
 			}
 
-			if Host.ExecMode == "True" {
-				execMode = true
+		  if Host.ExecMode == true {
+				targetHost.ExecMode = true
 			}
-			if Host.SpeedMode == "True" {
-				speedMode = true
+
+			if Host.SpeedMode == true {
+				targetHost.SpeedMode = true
 			}
+
 		}
 	}
 }

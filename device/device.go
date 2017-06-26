@@ -266,29 +266,30 @@ func (b *brocade_device) GetPromptMode() error {
 
 }
 
-func (b *brocade_device) WriteConfiguration() {
-	if err := b.SwitchMode("sshEnabled"); err != nil {
-		log.Fatal("Cant switch to privileged mode")
+func (b *brocade_device) WriteConfiguration() (err error) {
+	if err = b.SwitchMode("sshEnabled"); err != nil {
+		return err
 	}
 
 	b.write("write memory\n")
-	_, err := b.readTill([]string{"(config)#", "Write startup-config done."})
+	_, err = b.readTill([]string{"(config)#", "Write startup-config done."})
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	if b.debug {
 		log.Println("Write startup-config done")
 	}
+	return
 }
 
 func (b *brocade_device) CloseConnection() {
 	b.sshConnection.Close()
 }
 
-func (b *brocade_device) PasteConfiguration(configuration io.Reader) {
-	if err := b.SwitchMode("sshConfig"); err != nil {
-		log.Fatal("Cant switch to configuration mode")
+func (b *brocade_device) PasteConfiguration(configuration io.Reader) (err error) {
+	if err = b.SwitchMode("sshConfig"); err != nil {
+		return err
 	}
 
 	scanner := bufio.NewScanner(configuration)
@@ -298,7 +299,7 @@ func (b *brocade_device) PasteConfiguration(configuration io.Reader) {
 		if !b.speedMode {
 			val, err := b.readTillConfigPromptSection()
 			if err != nil {
-				log.Fatal(err)
+				return err
 			}
 			if b.debug {
 				log.Printf("Captured %s\n", val)
@@ -307,6 +308,7 @@ func (b *brocade_device) PasteConfiguration(configuration io.Reader) {
 		fmt.Print("+")
 	}
 	fmt.Print("\n")
+	return
 }
 
 func (b *brocade_device) RunCommandsFromReader(commands io.Reader) {
