@@ -6,10 +6,9 @@
 package main
 
 import (
-	device "./device"
-	libhost "./libhost"
+	"github.com/ipcjk/brocadecli/device"
+	"github.com/ipcjk/brocadecli/libhost"
 	"flag"
-	"fmt"
 	"gopkg.in/yaml.v1"
 	"io/ioutil"
 	"log"
@@ -38,7 +37,7 @@ func init() {
 	flag.BoolVar(&version, "version", false, "prints version and exit")
 
 	if version {
-		fmt.Println("brocadecli 0.1 (C) 2017 by Jörg Kost, jk@ip-clear.de")
+		log.Println("brocadecli 0.1 (C) 2017 by Jörg Kost, jk@ip-clear.de")
 		os.Exit(0)
 	}
 
@@ -173,7 +172,6 @@ func loadMergeConfig() {
 			}
 
 			break
-
 		}
 	}
 }
