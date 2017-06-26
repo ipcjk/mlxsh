@@ -38,7 +38,7 @@ func init() {
 		log.Println("Developer configuration active")
 		flag.StringVar(&configFile, "configfile", "config_jk.yaml", "Input file in yaml for username,password and host configuration if not specified on command-line")
 	} else {
-		flag.StringVar(&configFile, "configfile", "config.yaml", "Input file in yaml for username,password and host configuration if not specified on command-line")
+		flag.StringVar(&configFile, "configfile", "broconfig.yaml", "Input file in yaml for username,password and host configuration if not specified on command-line")
 	}
 
 	flag.Parse()

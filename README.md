@@ -39,7 +39,7 @@ Command line arguments:
 ```bash
 Usage of ./brocadecli:
   -configfile string
-    	Input file in yaml for username,password and host configuration if not specified on command-line (default "config.yaml")
+    	Input file in yaml for username,password and host configuration if not specified on command-line (default "broconfig.yaml")
   -debug
     	Enable debug for read / write
   -enable string
