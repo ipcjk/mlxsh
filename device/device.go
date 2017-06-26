@@ -15,8 +15,8 @@ const (
 )
 
 type brocade_device struct {
-	model, port                                              int
-	hostname, enable, username, password                     string
+	port int
+	model, hostname, enable, username, password              string
 	readTimeout                                              time.Duration
 	writeTimeout                                             time.Duration
 	debug                                                    bool
@@ -33,7 +33,7 @@ type brocade_device struct {
 	promptMode                                               string
 }
 
-func Brocade(model int, hostname string, port int, enable, username, password string, readTimeout time.Duration,
+func Brocade(model string, hostname string, port int, enable, username, password string, readTimeout time.Duration,
 	writeTimeout time.Duration, debug bool, speedMode bool) *brocade_device {
 	return &brocade_device{model: model, port: port, hostname: hostname, enable: enable, readTimeout: readTimeout,
 		speedMode: speedMode, writeTimeout: writeTimeout, debug: debug, promptModes: make(map[string]string),
@@ -140,8 +140,8 @@ WaitInput:
 		go func() {
 			select {
 			case <-(time.After(b.readTimeout)):
-				log.Println("Channel abgelaufen")
 				if b.debug {
+					log.Println("Channel abgelaufen")
 					log.Println(string(lineBuffer[:]))
 				}
 				b.sshSession.Close()

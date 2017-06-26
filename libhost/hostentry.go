@@ -16,6 +16,7 @@ type HostEntry struct {
 	ConfigFile      string        `yaml:"ConfigFile"`
 	ExecMode        bool          `yaml:"ExecMode"`
 	SpeedMode       bool          `yaml:"SpeedMode"`
-	ReadTimeout     time.Duration `yaml:Readtimeout`
-	WriteTimeout    time.Duration `yaml:Writetimeout`
+	ReadTimeout     time.Duration `yaml:"Readtimeout"`
+	WriteTimeout    time.Duration `yaml:"Writetimeout"`
+	Selector				string				`yaml:"Selector"`
 }
