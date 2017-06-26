@@ -21,7 +21,7 @@ var debug bool
 var logDir, outputFile, configFile string
 
 func init() {
-	flag.StringVar(&targetHost.Filename, "filename", "", "Configuration file to insert")
+	flag.StringVar(&targetHost.Filename, "script", "", "Configuration file to insert or script to execute")
 	flag.StringVar(&targetHost.Hostname, "hostname", "rt1", "Router hostname")
 	flag.StringVar(&targetHost.Password, "password", "password", "user password")
 	flag.StringVar(&targetHost.Username, "username", "username", "username")
