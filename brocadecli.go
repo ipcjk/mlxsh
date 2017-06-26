@@ -88,9 +88,7 @@ func main() {
 			}
 		}
 	}
-
 	/* router.ExecPrivilegedMode("show ip route ... longer") */
-	/* router.ExecPrivilegedMode("clear ip bgp neighbor ... soft") */
 	router.CloseConnection()
 }
 

@@ -6,7 +6,7 @@ Brocade MLX, Brocade MLXE, Brocade CER-series) via Secure Shell (ssh).
 
 ## modi 
 
-Brocadecli can takes a list of full parameters on the command line or can read configuration parameters from a yaml-style configuration file.
+Brocadecli can take a list of full parameters on the command line or can read configuration parameters from a yaml-style configuration file.
  
 ### cli mode
 
@@ -14,7 +14,7 @@ For example, if you want to quickly commit the cloudflare.txt ip prefix lists, y
 
 ```bash 
 brocadecli.linux -enable enablepassword  -hostname rt1 -password nocpassword -username noc \
--readtimeout 10s -filename cloudflare.txt -speedmode
+-readtimeout 10s -config cloudflare.txt -speedmode
 ```
 
 Also it is a handy tool for daily maintenance tasks or cronjobs:
@@ -22,48 +22,54 @@ Also it is a handy tool for daily maintenance tasks or cronjobs:
 ```bash
 crontab -l
  0 4 * * *  brocadecli.linux -hostname rt1 -password nocpassword -username noc -enable enablepassword\
-  -filename /home/noc/brocade/shutdown_bgp
+  -script /home/noc/brocade/shutdown_bgp
 ```
 
-If you want to run commands in the executable mode, be sure to set the parameter at start, else the tool\
+There is a fine and subtle difference in both commands. If you pass a file with the -script command, the router will drop into the
+exec or privileged mode. If you pass in the file with the -config parameter, the router will be inserting configuration in the configuration-mode.
+ 
+E.g. if you want to run commands in the executable mode, be sure to set the script-parameter at start, else the tool\
  will drop into config mode:
  
 ```bash
 crontab -l
  0 4 * * *  brocadecli.linux -hostname rt1 -password nocpassword -username noc -enable enablepassword\
-  -filename /home/noc/brocade_scripts/bgp_sum -execmode 
+  -script /home/noc/brocade_scripts/bgp_sum  
 ```
 
 Command line arguments:
 
 ```bash
 Usage of ./brocadecli:
-  -configfile string
-    	Input file in yaml for username,password and host configuration if not specified on command-line (default "broconfig.yaml")
-  -debug
-    	Enable debug for read / write
-  -enable string
-    	enable password (default "enablepassword")
-  -execmode
-    	Exec commands / input from filename instead of paste configuration
-  -filename string
-    	Configuration file to insert
-  -hostname string
-    	Router hostname (default "dus-rt1.premium-datacenter.eu")
-  -logdir string
-    	Record session into logDir, automatically gzip
-  -outputfile string
-    	Output file, else stdout
-  -password string
-    	user password (default "password")
-  -readtimeout duration
-    	timeout for reading poll on cli select (default 15s)
-  -speedmode
-    	Enable speed mode write, will ignore any output from the cli while writing
-  -username string
-    	username (default "username")
-  -writetimeout duration
-    	timeout to stall after a write to cli
+   -config string
+     	Configuration file to insert
+   -debug
+     	Enable debug for read / write
+   -enable string
+     	enable password
+   -hostname string
+     	Router hostname
+   -logdir string
+     	Record session into logDir, automatically gzip
+   -outputfile string
+     	Output file, else stdout
+   -password string
+     	user password
+   -readtimeout duration
+     	timeout for reading poll on cli select (default 15s)
+   -routerdb string
+     	Input file in yaml for username,password and host configuration if not specified on command-line (default "broconfig.yaml")
+   -script string
+     	script file to to execute
+   -speedmode
+     	Enable speed mode write, will ignore any output from the cli while writing
+   -username string
+     	username
+   -version
+     	prints version and exit
+   -writetimeout duration
+     	timeout to stall after a write to cli
+ exit status 2
 ```
 
 ### configfile mode
@@ -94,7 +100,7 @@ Now from the command line it is only necessary to specify a hostname for the con
 you can still give this parameters from the command line. Lets run a command for rt2:
  
  ```bash
-brocadecli -hostname rt2 -filename brocade_scripts/ip_caches -execmode 
+brocadecli -hostname rt2 -script brocade_scripts/ip_caches 
 2017/06/25 15:01:32 sh ip cache
 Total IP and IPVPN Cache Entry Usage on LPs:
  Module        Host    Network       Free      Total
@@ -109,7 +115,7 @@ Total IPv6 and IPv6 VPN Cache Entry Usage on LPs:
 
 ### docker
 
-Run brocadecli with the help of docker:
+Run brocadecli with the help of docker, joerg/brocadecli is the name of the docker image available at hub.docker.com.
 ```bash
 docker run -ti joerg/brocadecli /bin/sh
 ./brocadecli.linux -h
