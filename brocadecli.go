@@ -9,6 +9,7 @@ import (
 	device "./device"
 	libhost "./libhost"
 	"flag"
+	"fmt"
 	"gopkg.in/yaml.v1"
 	"io/ioutil"
 	"log"
@@ -17,34 +18,44 @@ import (
 )
 
 var targetHost libhost.HostEntry
-var debug bool
-var logDir, outputFile, configFile string
+var debug, version bool
+var scriptFile, configFile string
+var logDir, outputFile, routerFile string
 
 func init() {
-	flag.StringVar(&targetHost.Filename, "script", "", "Configuration file to insert or script to execute")
-	flag.StringVar(&targetHost.Hostname, "hostname", "rt1", "Router hostname")
-	flag.StringVar(&targetHost.Password, "password", "password", "user password")
-	flag.StringVar(&targetHost.Username, "username", "username", "username")
-	flag.StringVar(&targetHost.EnablePassword, "enable", "enablepassword", "enable password")
+	flag.StringVar(&scriptFile, "script", "", "script file to to execute")
+	flag.StringVar(&configFile, "config", "", "Configuration file to insert")
+	flag.StringVar(&targetHost.Hostname, "hostname", "", "Router hostname")
+	flag.StringVar(&targetHost.Password, "password", "", "user password")
+	flag.StringVar(&targetHost.Username, "username", "", "username")
+	flag.StringVar(&targetHost.EnablePassword, "enable", "", "enable password")
 	flag.DurationVar(&targetHost.ReadTimeout, "readtimeout", time.Second*15, "timeout for reading poll on cli select")
 	flag.DurationVar(&targetHost.WriteTimeout, "writetimeout", time.Millisecond*0, "timeout to stall after a write to cli")
 	flag.BoolVar(&debug, "debug", false, "Enable debug for read / write")
 	flag.BoolVar(&targetHost.SpeedMode, "speedmode", false, "Enable speed mode write, will ignore any output from the cli while writing")
-	flag.BoolVar(&targetHost.ExecMode, "execmode", false, "Exec commands / input from filename instead of paste configuration")
 	flag.StringVar(&logDir, "logdir", "", "Record session into logDir, automatically gzip")
 	flag.StringVar(&outputFile, "outputfile", "", "Output file, else stdout")
+	flag.BoolVar(&version, "version", false, "prints version and exit")
+
+	if version {
+		fmt.Println("brocadecli 0.1 (C) 2017 by Jörg Kost, jk@ip-clear.de")
+		os.Exit(0)
+	}
 
 	if os.Getenv("JK") != "" {
 		log.Println("Developer configuration active")
-		flag.StringVar(&configFile, "configfile", "config_jk.yaml", "Input file in yaml for username,password and host configuration if not specified on command-line")
+		flag.StringVar(&routerFile, "routerdb", "config_jk.yaml", "Input file in yaml for username,password and host configuration if not specified on command-line")
 	} else {
-		flag.StringVar(&configFile, "configfile", "broconfig.yaml", "Input file in yaml for username,password and host configuration if not specified on command-line")
+		flag.StringVar(&routerFile, "routerdb", "broconfig.yaml", "Input file in yaml for username,password and host configuration if not specified on command-line")
 	}
 
 	flag.Parse()
-	if configFile != "" {
+
+	if routerFile != "" {
 		loadConfig()
 	}
+
+
 
 }
 
@@ -89,7 +100,7 @@ func main() {
 func loadConfig() {
 	var hostsConfig []libhost.HostEntry
 
-	source, err := ioutil.ReadFile(configFile)
+	source, err := ioutil.ReadFile(routerFile)
 	if err != nil {
 		return
 	}
@@ -125,13 +136,35 @@ func loadConfig() {
 				targetHost.Filename = Host.Filename
 			}
 
-		  if Host.ExecMode == true {
+			if Host.ExecMode == true {
 				targetHost.ExecMode = true
 			}
 
 			if Host.SpeedMode == true {
 				targetHost.SpeedMode = true
 			}
+
+			if Host.ConfigFile != "" {
+				targetHost.Filename = Host.ConfigFile
+				targetHost.ExecMode = false
+			}
+
+			if Host.ScriptFile != ""  {
+				targetHost.Filename = Host.ScriptFile
+				targetHost.ExecMode = true
+			}
+
+			if scriptFile != ""  {
+				targetHost.Filename = scriptFile
+				targetHost.ExecMode = true
+			}
+
+			if configFile != "" {
+				targetHost.Filename = configFile
+				targetHost.ExecMode = false
+			}
+			
+			break
 
 		}
 	}

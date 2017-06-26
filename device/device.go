@@ -40,7 +40,7 @@ func Brocade(model int, hostname string, port int, enable, username, password st
 		sshConfig: &ssh.ClientConfig{User: username, Auth: []ssh.AuthMethod{ssh.Password(password)}}}
 }
 
-func (b *brocade_device) ConnectPrivilegedMode() (err error)  {
+func (b *brocade_device) ConnectPrivilegedMode() (err error) {
 	b.sshConnection, err = ssh.Dial("tcp", fmt.Sprintf("%s:%d", b.hostname, b.port), b.sshConfig)
 	if err != nil {
 		return err
@@ -315,7 +315,7 @@ func (b *brocade_device) PasteConfiguration(configuration io.Reader) (err error)
 	return
 }
 
-func (b *brocade_device) RunCommandsFromReader(commands io.Reader) (err error){
+func (b *brocade_device) RunCommandsFromReader(commands io.Reader) (err error) {
 	if err = b.SwitchMode("sshEnabled"); err != nil {
 		return fmt.Errorf("Cant switch to privileged mode: %s", err)
 	}
