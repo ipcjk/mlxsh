@@ -15,7 +15,7 @@ import (
 	"time"
 )
 
-type HostFile struct {
+type HostEntry struct {
 	Hostname        string `yaml:"Hostname"`
 	Username        string `yaml:"Username"`
 	Password        string `yaml:"Password"`
@@ -26,9 +26,11 @@ type HostFile struct {
 	Filename        string `yaml:"FileName"`
 	ExecMode        string `yaml:"ExecMode"`
 	SpeedMode       string `yaml:"SpeedMode"`
+	ReadTimeout time  `yaml:Readtimeout`
+	WriteTimeout time  `yaml:Writetimeout`
 }
 
-var Hosts []HostFile
+var Hosts []HostEntry
 
 var passWord, userName, fileName, hostName, enable, logDir string
 var readTimeout, writeTimeout time.Duration
@@ -63,12 +65,21 @@ func init() {
 }
 
 func main() {
+	var err error
 	router := device.Brocade(device.DEVICE_MLX, hostName, 22, enable, userName, passWord,
 		readTimeout, writeTimeout, debug, speedMode)
 
-	router.ConnectPrivilegedMode()
-	router.SkipPageDisplayMode()
-	router.GetPromptMode()
+	if err = router.ConnectPrivilegedMode(); err != nil {
+		log.Fatal(err)
+	}
+
+	if _, err = router.SkipPageDisplayMode(); err != nil {
+		log.Fatal(err)
+	}
+
+	if err = router.GetPromptMode(); err != nil {
+		log.Fatal(err)
+	}
 
 	if fileName != "" {
 		file, err := os.Open(fileName)
@@ -94,7 +105,7 @@ func main() {
 func loadConfig() {
 	source, err := ioutil.ReadFile(configFile)
 	if err != nil {
-		return 
+		return
 	}
 
 	err = yaml.Unmarshal(source, &Hosts)
@@ -107,9 +118,18 @@ func loadConfig() {
 			if debug {
 				log.Println("Overwrite cli settings for " + hostName + " from " + configFile)
 			}
-			passWord = Host.Password
-			userName = Host.Username
-			enable = Host.EnablePassword
+
+			if Host.Password != "" {
+				passWord = Host.Password
+			}
+
+			if Host.EnablePassword != "" {
+				enable = Host.EnablePassword
+			}
+
+			if Host.Username != "" {
+				userName = Host.Username
+			}
 
 			if Host.Filename != "" {
 				fileName = Host.Filename

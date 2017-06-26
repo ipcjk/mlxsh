@@ -40,41 +40,40 @@ func Brocade(model int, hostname string, port int, enable, username, password st
 		sshConfig: &ssh.ClientConfig{User: username, Auth: []ssh.AuthMethod{ssh.Password(password)}}}
 }
 
-func (b *brocade_device) ConnectPrivilegedMode() {
-	var err error
+func (b *brocade_device) ConnectPrivilegedMode() (err error)  {
 	b.sshConnection, err = ssh.Dial("tcp", fmt.Sprintf("%s:%d", b.hostname, b.port), b.sshConfig)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	b.sshSession, err = b.sshConnection.NewSession()
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	b.sshStdoutPipe, err = b.sshSession.StdoutPipe()
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	b.sshStdinPipe, err = b.sshSession.StdinPipe()
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	b.sshStdErrPipe, err = b.sshSession.StderrPipe()
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	err = b.sshSession.Shell()
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	b.sshUnprivilegedPrompt, err = b.readTill([]string{">", "foobar"})
 	if err != nil {
-		log.Fatal("Cant find login screen")
+		return err
 	}
 
 	b.sshEnabledPrompt = strings.Replace(b.sshUnprivilegedPrompt, ">", "#", 1)
@@ -192,7 +191,7 @@ func (b *brocade_device) ExecPrivilegedMode(command string) {
 
 func (b *brocade_device) SkipPageDisplayMode() (string, error) {
 	if err := b.SwitchMode("sshEnabled"); err != nil {
-		log.Fatal("Cant switch to enabled mode")
+		return "", fmt.Errorf("Cant switch to enabled mode to execute skip-page-display")
 	}
 
 	b.write("skip-page-display\n")
@@ -247,7 +246,7 @@ func (b *brocade_device) GetPromptMode() error {
 
 	mode, err := b.readTill([]string{b.sshConfigPrompt, b.sshEnabledPrompt, b.sshUnprivilegedPrompt})
 	if err != nil {
-		log.Fatalf("Cant find command line mode: %s", err)
+		return fmt.Errorf("Cant find command line mode: %s", err)
 	}
 
 	mode = strings.TrimSpace(mode)
