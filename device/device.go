@@ -8,6 +8,7 @@ import (
 	"log"
 	"strings"
 	"time"
+	"os"
 )
 
 const (
@@ -35,6 +36,9 @@ type brocade_device struct {
 
 func Brocade(model string, hostname string, port int, enable, username, password string, readTimeout time.Duration,
 	writeTimeout time.Duration, debug bool, speedMode bool) *brocade_device {
+
+	log.SetOutput(os.Stdout)
+
 	return &brocade_device{model: model, port: port, hostname: hostname, enable: enable, readTimeout: readTimeout,
 		speedMode: speedMode, writeTimeout: writeTimeout, debug: debug, promptModes: make(map[string]string),
 		sshConfig: &ssh.ClientConfig{User: username, Auth: []ssh.AuthMethod{ssh.Password(password)}}}
@@ -141,7 +145,6 @@ WaitInput:
 			select {
 			case <-(time.After(b.readTimeout)):
 				if b.debug {
-					log.Println("Channel abgelaufen")
 					log.Println(string(lineBuffer[:]))
 				}
 				b.sshSession.Close()

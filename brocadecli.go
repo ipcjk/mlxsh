@@ -14,6 +14,8 @@ import (
 	"log"
 	"os"
 	"time"
+	"strings"
+	"io"
 )
 
 var cli libhost.HostEntry
@@ -23,8 +25,8 @@ var logDir, outputFile, routerFile, selector string
 var selectedHosts []libhost.HostEntry
 
 func init() {
-	flag.StringVar(&scriptFile, "script", "", "script file to to execute")
-	flag.StringVar(&configFile, "config", "", "Configuration file to insert")
+	flag.StringVar(&scriptFile, "script", "", "script file to to execute, if no file is found, its used as a direct command")
+	flag.StringVar(&configFile, "config", "", "Configuration file to insert, its used as a direct command")
 	flag.StringVar(&selector, "select", "", "selector for run commands on a group of routers")
 	flag.StringVar(&cli.Hostname, "hostname", "", "Router hostname")
 	flag.StringVar(&cli.Password, "password", "", "user password")
@@ -79,20 +81,29 @@ func main() {
 		}
 
 		if selectHost.Filename != "" {
+			var input io.Reader
 			file, err := os.Open(selectHost.Filename)
 			defer file.Close()
-			if err != nil {
-				log.Printf("Cant open file: %s", err)
-			} else {
-				if selectHost.ExecMode == true {
-					log.Println("runcommands from reader")
-					router.RunCommandsFromReader(file)
-				} else {
-					router.ConfigureTerminalMode()
-					router.PasteConfiguration(file)
-					router.WriteConfiguration()
+
+			if err != nil && os.IsNotExist(err){
+				input = strings.NewReader(selectHost.Filename)
+				if debug {
+					log.Printf("Cant open file: %s, will read from command line argument\n", err)
 				}
+			} else if err != nil {
+				log.Printf("Cant open file: %s\n", err)
+			} else {
+				input = file
 			}
+
+			if selectHost.ExecMode == true {
+					router.RunCommandsFromReader(input)
+			} else {
+					router.ConfigureTerminalMode()
+					router.PasteConfiguration(input)
+					router.WriteConfiguration()
+			}
+
 		}
 
 		router.CloseConnection()
