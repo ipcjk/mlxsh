@@ -52,16 +52,14 @@ func init() {
 	flag.Parse()
 
 	if routerFile != "" {
-		loadConfig()
+		loadMergeConfig()
 	}
-
-
 
 }
 
 func main() {
 	var err error
-	router := device.Brocade(device.DEVICE_MLX, targetHost.Hostname, 22, targetHost.EnablePassword, targetHost.Username, targetHost.Password,
+	router := device.Brocade(device.DEVICE_MLX, targetHost.Hostname, targetHost.SSHPort, targetHost.EnablePassword, targetHost.Username, targetHost.Password,
 		targetHost.ReadTimeout, targetHost.WriteTimeout, debug, targetHost.SpeedMode)
 
 	if err = router.ConnectPrivilegedMode(); err != nil {
@@ -97,8 +95,12 @@ func main() {
 	router.CloseConnection()
 }
 
-func loadConfig() {
+func loadMergeConfig() {
 	var hostsConfig []libhost.HostEntry
+
+	if targetHost.Hostname == "" {
+		log.Fatal("No host/router given, abort...")
+	}
 
 	source, err := ioutil.ReadFile(routerFile)
 	if err != nil {
@@ -149,12 +151,12 @@ func loadConfig() {
 				targetHost.ExecMode = false
 			}
 
-			if Host.ScriptFile != ""  {
+			if Host.ScriptFile != "" {
 				targetHost.Filename = Host.ScriptFile
 				targetHost.ExecMode = true
 			}
 
-			if scriptFile != ""  {
+			if scriptFile != "" {
 				targetHost.Filename = scriptFile
 				targetHost.ExecMode = true
 			}
@@ -163,7 +165,13 @@ func loadConfig() {
 				targetHost.Filename = configFile
 				targetHost.ExecMode = false
 			}
-			
+
+			if Host.SSHPort == 0 {
+				targetHost.SSHPort = 22
+			} else {
+				targetHost.SSHPort = Host.SSHPort
+			}
+
 			break
 
 		}

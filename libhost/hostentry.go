@@ -7,6 +7,7 @@ type HostEntry struct {
 	Username        string        `yaml:"Username"`
 	Password        string        `yaml:"Password"`
 	EnablePassword  string        `yaml:"EnablePassword"`
+	SSHPort         int           `yaml:"SSHPort"`
 	DeviceType      string        `yaml:"DeviceType"`
 	KeyFile         string        `yaml:"KeyFile"`
 	StrictHostCheck bool          `yaml:"StrictHostCheck"`
