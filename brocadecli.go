@@ -10,24 +10,23 @@ import (
 	"github.com/ipcjk/brocadecli/device"
 	"github.com/ipcjk/brocadecli/libhost"
 	"gopkg.in/yaml.v1"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
-	"time"
 	"strings"
-	"io"
+	"time"
 )
 
 var cli libhost.HostEntry
-var debug, version bool
-var scriptFile, configFile string
-var logDir, outputFile, routerFile, selector string
 var selectedHosts []libhost.HostEntry
+var debug, version bool
+var scriptFile, configFile, routerFile, label string
 
 func init() {
 	flag.StringVar(&scriptFile, "script", "", "script file to to execute, if no file is found, its used as a direct command")
 	flag.StringVar(&configFile, "config", "", "Configuration file to insert, its used as a direct command")
-	flag.StringVar(&selector, "select", "", "selector for run commands on a group of routers")
+	flag.StringVar(&label, "label", "", "selector for run commands on a group of routers")
 	flag.StringVar(&cli.Hostname, "hostname", "", "Router hostname")
 	flag.StringVar(&cli.Password, "password", "", "user password")
 	flag.StringVar(&cli.Username, "username", "", "username")
@@ -36,12 +35,10 @@ func init() {
 	flag.DurationVar(&cli.WriteTimeout, "writetimeout", time.Millisecond*0, "timeout to stall after a write to cli")
 	flag.BoolVar(&debug, "debug", false, "Enable debug for read / write")
 	flag.BoolVar(&cli.SpeedMode, "speedmode", false, "Enable speed mode write, will ignore any output from the cli while writing")
-	flag.StringVar(&logDir, "logdir", "", "Record session into logDir, automatically gzip")
-	flag.StringVar(&outputFile, "outputfile", "", "Output file, else stdout")
 	flag.BoolVar(&version, "version", false, "prints version and exit")
 
 	if version {
-		log.Println("brocadecli 0.1 (C) 2017 by Jörg Kost, jk@ip-clear.de")
+		log.Println("brocadecli 0.x (C) 2017 by Jörg Kost, jk@ip-clear.de")
 		os.Exit(0)
 	}
 
@@ -61,7 +58,6 @@ func init() {
 }
 
 func main() {
-
 	for _, selectHost := range selectedHosts {
 		var err error
 
@@ -85,7 +81,7 @@ func main() {
 			file, err := os.Open(selectHost.Filename)
 			defer file.Close()
 
-			if err != nil && os.IsNotExist(err){
+			if err != nil && os.IsNotExist(err) {
 				input = strings.NewReader(selectHost.Filename)
 				if debug {
 					log.Printf("Cant open file: %s, will read from command line argument\n", err)
@@ -97,11 +93,11 @@ func main() {
 			}
 
 			if selectHost.ExecMode == true {
-					router.RunCommandsFromReader(input)
+				router.RunCommandsFromReader(input)
 			} else {
-					router.ConfigureTerminalMode()
-					router.PasteConfiguration(input)
-					router.WriteConfiguration()
+				router.ConfigureTerminalMode()
+				router.PasteConfiguration(input)
+				router.WriteConfiguration()
 			}
 
 		}
@@ -114,9 +110,9 @@ func main() {
 func loadMergeConfig() {
 	var hostsConfig []libhost.HostEntry
 
-	if cli.Hostname == "" && selector == "" {
+	if cli.Hostname == "" && label == "" {
 		log.Fatal("No host/router or selector given, abort...")
-	} else if cli.Hostname != "" && selector != "" {
+	} else if cli.Hostname != "" && label != "" {
 		log.Fatal("Cant run in targetHost-mode and Groupselector")
 	}
 
@@ -194,8 +190,7 @@ func loadMergeConfig() {
 			selectedHosts = append(selectedHosts, cli)
 			break
 
-		} else if Host.Selector == selector {
-
+		} else if Host.MatchLabels(label) {
 			var newHost = Host
 
 			if configFile != "" {
