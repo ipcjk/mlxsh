@@ -1,18 +1,18 @@
-# BrocadeCLI
+# mlxsh
 
-Brocadecli is a tool that enables you to enter configuration changes to Brocade Netiron devices (
+mlxsh is a tool that enables you to enter configuration changes to Brocade Netiron devices (
 Brocade MLX, Brocade MLXE, Brocade CER-series) via Secure Shell (ssh).
 
 ## modi 
 
-Brocadecli can take a list of full parameters on the command line or can read configuration parameters from a yaml-style configuration file.
+mlxsh can take a list of full parameters on the command line or can read configuration parameters from a yaml-style configuration file.
  
 ### cli mode
 
 For example, if you want to quickly commit the cloudflare.txt ip prefix lists, you can enter the command:
 
 ```bash 
-brocadecli.linux -enable enablepassword  -hostname rt1 -password nocpassword -username noc \
+mlxsh -enable enablepassword  -hostname rt1 -password nocpassword -username noc \
 -readtimeout 10s -config cloudflare.txt -speedmode
 ```
 
@@ -20,7 +20,7 @@ Also it is a handy tool for daily maintenance tasks or cronjobs:
 
 ```bash
 crontab -l
- 0 4 * * *  brocadecli.linux -hostname rt1 -password nocpassword -username noc -enable enablepassword\
+ 0 4 * * *  mlxsh -hostname rt1 -password nocpassword -username noc -enable enablepassword\
   -script /home/noc/brocade/shutdown_bgp
 ```
 
@@ -32,14 +32,14 @@ E.g. if you want to run commands in the executable mode, be sure to set the scri
  
 ```bash
 crontab -l
- 0 4 * * *  brocadecli.linux -hostname rt1 -password nocpassword -username noc -enable enablepassword\
+ 0 4 * * *  mlxsh -hostname rt1 -password nocpassword -username noc -enable enablepassword\
   -script /home/noc/brocade_scripts/bgp_sum  
 ```
 
 Command line arguments:
 
 ```bash
-Usage of ./brocadecli:
+Usage of ./mlxsh:
   -config string
     	Configuration file to insert, its used as a direct command
   -debug
@@ -94,7 +94,7 @@ Now from the command line it is only necessary to specify a hostname for the con
 you can still give this parameters from the command line. Lets run a command for rt2:
  
  ```bash
-brocadecli -hostname rt2 -script brocade_scripts/ip_caches 
+mlxsh -hostname rt2 -script scripts/ip_caches 
 2017/06/25 15:01:32 sh ip cache
 Total IP and IPVPN Cache Entry Usage on LPs:
  Module        Host    Network       Free      Total
@@ -110,21 +110,21 @@ Total IPv6 and IPv6 VPN Cache Entry Usage on LPs:
  that is located in the location in Frankfurt you can enter the command line:
   
   ```bash
- brocadecli -label "location=frankfurt" -script brocade_scripts/ip_caches 
+ mlxsh -label "location=frankfurt" -script brocade_scripts/ip_caches 
   ```
   
   If you only want to execute on any production device in Frakfurt, you can just add a label and also explain
   a command-one liner directly on the prompt: 
 ```bash
-   brocadecli -label "location=frankfurt,environment=production" -script "show ip bgp summary"
+   mlxsh -label "location=frankfurt,environment=production" -script "show ip bgp summary"
 ```
  
  Great!
 
 ### docker
 
-Run brocadecli with the help of docker, joerg/brocadecli is the name of the docker image available at hub.docker.com.
+Run mlxsh with the help of docker, joerg/mlxsh is the name of the docker image available at hub.docker.com.
 ```bash
-docker run -ti joerg/brocadecli /bin/sh
-./brocadecli.linux -h
+docker run -ti joerg/mlxsh /bin/sh
+./mlxsh.linux -h
 ```
