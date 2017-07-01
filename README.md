@@ -1,7 +1,7 @@
 # mlxsh
 
-mlxsh is a tool that enables you to enter configuration changes to Brocade Netiron devices (
-Brocade MLX, Brocade MLXE, Brocade CER-series) via Secure Shell (ssh).
+mlxsh is the missing power command-line that enables you to enter configuration changes to groups of Brocade / Extreme Networks Netiron devices (
+MLX, MLXE, CER, XMR) via Secure Shell (ssh).
 
 ## modi 
 

@@ -92,7 +92,7 @@ func TestMatchLabels(t *testing.T) {
 
 }
 
-func TestAppliCli(t *testing.T) {
+func TestAppCli(t *testing.T) {
 	r := strings.NewReader(hostYaml)
 	hostsConfig, err := libhost.LoadAllFromYAML(r)
 	if err != nil {
