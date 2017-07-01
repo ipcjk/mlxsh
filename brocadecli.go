@@ -9,32 +9,32 @@ import (
 	"flag"
 	"github.com/ipcjk/brocadecli/device"
 	"github.com/ipcjk/brocadecli/libhost"
-	"gopkg.in/yaml.v1"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"strings"
 	"time"
 )
 
-var cli libhost.HostEntry
-var selectedHosts []libhost.HostEntry
+var cliWriteTimeout, cliReadTimeout time.Duration
+var cliHostname, cliPassword, cliUsername, cliEnablePassword string
+var cliSpeedMode bool
 var debug, version bool
-var scriptFile, configFile, routerFile, label string
+var cliScriptFile, cliConfigFile, cliRouterFile, cliLabel string
+var selectedHosts []libhost.HostEntry
 
 func init() {
-	flag.StringVar(&scriptFile, "script", "", "script file to to execute, if no file is found, its used as a direct command")
-	flag.StringVar(&configFile, "config", "", "Configuration file to insert, its used as a direct command")
-	flag.StringVar(&label, "label", "", "selector for run commands on a group of routers")
-	flag.StringVar(&cli.Hostname, "hostname", "", "Router hostname")
-	flag.StringVar(&cli.Password, "password", "", "user password")
-	flag.StringVar(&cli.Username, "username", "", "username")
-	flag.StringVar(&cli.EnablePassword, "enable", "", "enable password")
-	flag.DurationVar(&cli.ReadTimeout, "readtimeout", time.Second*15, "timeout for reading poll on cli select")
-	flag.DurationVar(&cli.WriteTimeout, "writetimeout", time.Millisecond*0, "timeout to stall after a write to cli")
+	flag.StringVar(&cliScriptFile, "script", "", "script file to to execute, if no file is found, its used as a direct command")
+	flag.StringVar(&cliConfigFile, "config", "", "Configuration file to insert, its used as a direct command")
+	flag.StringVar(&cliLabel, "label", "", "label-selection for run commands on a group of routers, e.g. 'location=munich,environment=prod'")
+	flag.StringVar(&cliHostname, "hostname", "", "Router hostname")
+	flag.StringVar(&cliPassword, "password", "", "user password")
+	flag.StringVar(&cliUsername, "username", "", "username")
+	flag.StringVar(&cliEnablePassword, "enable", "", "enable password")
+	flag.DurationVar(&cliReadTimeout, "readtimeout", time.Second*15, "timeout for reading poll on cli select")
+	flag.DurationVar(&cliWriteTimeout, "writetimeout", time.Millisecond*0, "timeout to stall after a write to cli")
 	flag.BoolVar(&debug, "debug", false, "Enable debug for read / write")
-	flag.BoolVar(&cli.SpeedMode, "speedmode", false, "Enable speed mode write, will ignore any output from the cli while writing")
+	flag.BoolVar(&cliSpeedMode, "speedmode", false, "Enable speed mode write, will ignore any output from the cli while writing")
 	flag.BoolVar(&version, "version", false, "prints version and exit")
 
 	if version {
@@ -42,19 +42,44 @@ func init() {
 		os.Exit(0)
 	}
 
-	if os.Getenv("JK") != "" {
+	if os.Getenv("JK") == "1" {
 		log.Println("Developer configuration active")
-		flag.StringVar(&routerFile, "routerdb", "config_jk.yaml", "Input file in yaml for username,password and host configuration if not specified on command-line")
+		flag.StringVar(&cliRouterFile, "routerdb", "config_jk.yaml", "Input file in yaml for username,password and host configuration if not specified on command-line")
 	} else {
-		flag.StringVar(&routerFile, "routerdb", "broconfig.yaml", "Input file in yaml for username,password and host configuration if not specified on command-line")
+		flag.StringVar(&cliRouterFile, "routerdb", "", "Input file in yaml for username,password and host configuration if not specified on command-line")
 	}
 
 	flag.Parse()
 
-	if routerFile != "" {
-		loadMergeConfig()
+	if cliHostname == "" && cliLabel == "" {
+		log.Fatal("No host/router or selector given, abort...")
+	} else if cliHostname != "" && cliLabel != "" {
+		log.Fatal("Cant run in targetHost-mode and Groupselector")
 	}
 
+	if cliRouterFile != "" {
+		file, err := os.Open(cliRouterFile)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		selectedHosts, err = libhost.LoadMatchesFromYAML(file, cliLabel, cliHostname)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+	} else if cliHostname != "" {
+		selectedHosts = append(selectedHosts, libhost.HostEntry{Hostname: cliHostname, Username: cliUsername, Password: cliPassword, EnablePassword: cliEnablePassword, SpeedMode: cliSpeedMode, SSHPort: 22})
+	}
+
+	if len(selectedHosts) == 0 {
+		log.Fatal("Could not find any target host for this labels")
+	}
+
+	/* Possible overwrite settings from CliParameters */
+	for x, _ := range selectedHosts {
+		selectedHosts[x].ApplyCliSettings(cliScriptFile, cliConfigFile, cliWriteTimeout, cliReadTimeout)
+	}
 }
 
 func main() {
@@ -99,125 +124,7 @@ func main() {
 				router.PasteConfiguration(input)
 				router.WriteConfiguration()
 			}
-
 		}
-
 		router.CloseConnection()
-	}
-
-}
-
-func loadMergeConfig() {
-	var hostsConfig []libhost.HostEntry
-
-	if cli.Hostname == "" && label == "" {
-		log.Fatal("No host/router or selector given, abort...")
-	} else if cli.Hostname != "" && label != "" {
-		log.Fatal("Cant run in targetHost-mode and Groupselector")
-	}
-
-	source, err := ioutil.ReadFile(routerFile)
-	if err != nil {
-		return
-	}
-
-	err = yaml.Unmarshal(source, &hostsConfig)
-	if err != nil {
-		log.Fatalf("error: %v", err)
-	}
-
-	for _, Host := range hostsConfig {
-		/* Code for targetHost-mode */
-		if Host.Hostname == cli.Hostname {
-			if debug {
-				log.Println("Overwrite cli settings for " + cli.Hostname + " from " + configFile)
-			}
-
-			/* Better copy structure?
-			but then we will copy the booleans?
-			*/
-
-			if Host.Password != "" {
-				cli.Password = Host.Password
-			}
-
-			if Host.EnablePassword != "" {
-				cli.EnablePassword = Host.EnablePassword
-			}
-
-			if Host.Username != "" {
-				cli.Username = Host.Username
-			}
-
-			if Host.Filename != "" {
-				cli.Filename = Host.Filename
-			}
-
-			if Host.ExecMode == true {
-				cli.ExecMode = true
-			}
-
-			if Host.SpeedMode == true {
-				cli.SpeedMode = true
-			}
-
-			if Host.ConfigFile != "" {
-				cli.Filename = Host.ConfigFile
-				cli.ExecMode = false
-			}
-
-			if Host.ScriptFile != "" {
-				cli.Filename = Host.ScriptFile
-				cli.ExecMode = true
-			}
-
-			if scriptFile != "" {
-				cli.Filename = scriptFile
-				cli.ExecMode = true
-			}
-
-			if configFile != "" {
-				cli.Filename = configFile
-				cli.ExecMode = false
-			}
-
-			if Host.SSHPort == 0 {
-				cli.SSHPort = 22
-			} else {
-				cli.SSHPort = Host.SSHPort
-			}
-
-			selectedHosts = append(selectedHosts, cli)
-			break
-
-		} else if Host.MatchLabels(label) {
-			var newHost = Host
-
-			if configFile != "" {
-				newHost.Filename = configFile
-				newHost.ExecMode = false
-			}
-
-			if scriptFile != "" {
-				newHost.Filename = scriptFile
-				newHost.ExecMode = true
-			}
-
-			if newHost.SSHPort == 0 {
-				newHost.SSHPort = 22
-			} else {
-				newHost.SSHPort = Host.SSHPort
-			}
-
-			if newHost.ReadTimeout == 0 {
-				newHost.ReadTimeout = cli.ReadTimeout
-			}
-
-			if newHost.WriteTimeout == 0 {
-				newHost.WriteTimeout = cli.WriteTimeout
-			}
-
-			selectedHosts = append(selectedHosts, newHost)
-		}
 	}
 }

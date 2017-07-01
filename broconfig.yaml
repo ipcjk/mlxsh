@@ -7,11 +7,20 @@
   KeyFile: key
   StrictHostCheck: False
   SpeedMode: False
-  FileName: scripts/bgp_sum
-  ExecMode: True
+  ScriptFile: scripts/bgp_sum
+  Labels:
+    location: dus
+    environment: stage
+    type: cer
 - Hostname: rt2
   Username: mucuser
   Password: mucpass
   SSHPort: 22
   EnablePassword: enablePass
-  DeviceType: MLX
+  StrictHostCheck: False
+  SpeedMode: False
+  ScriptFile: scripts/bgp_sum
+  Labels:
+    location: dus
+    environment: stage
+    type: cer

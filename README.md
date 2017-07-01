@@ -1,6 +1,5 @@
 # BrocadeCLI
 
-## Overview
 Brocadecli is a tool that enables you to enter configuration changes to Brocade Netiron devices (
 Brocade MLX, Brocade MLXE, Brocade CER-series) via Secure Shell (ssh).
 
@@ -41,35 +40,32 @@ Command line arguments:
 
 ```bash
 Usage of ./brocadecli:
-   -config string
-     	Configuration file to insert
-   -debug
-     	Enable debug for read / write
-   -enable string
-     	enable password
-   -hostname string
-     	Router hostname
-   -logdir string
-     	Record session into logDir, automatically gzip
-   -outputfile string
-     	Output file, else stdout
-   -password string
-     	user password
-   -readtimeout duration
-     	timeout for reading poll on cli select (default 15s)
-   -routerdb string
-     	Input file in yaml for username,password and host configuration if not specified on command-line (default "broconfig.yaml")
-   -script string
-     	script file to to execute
-   -speedmode
-     	Enable speed mode write, will ignore any output from the cli while writing
-   -username string
-     	username
-   -version
-     	prints version and exit
-   -writetimeout duration
-     	timeout to stall after a write to cli
- exit status 2
+  -config string
+    	Configuration file to insert, its used as a direct command
+  -debug
+    	Enable debug for read / write
+  -enable string
+    	enable password
+  -hostname string
+    	Router hostname
+  -label string
+    	label-selection for run commands on a group of routers, e.g. 'location=munich,environment=prod'
+  -password string
+    	user password
+  -readtimeout duration
+    	timeout for reading poll on cli select (default 15s)
+  -routerdb string
+    	Input file in yaml for username,password and host configuration if not specified on command-line
+  -script string
+    	script file to to execute, if no file is found, its used as a direct command
+  -speedmode
+    	Enable speed mode write, will ignore any output from the cli while writing
+  -username string
+    	username
+  -version
+    	prints version and exit
+  -writetimeout duration
+    	timeout to stall after a write to cli
 ```
 
 ### configfile mode
@@ -79,21 +75,19 @@ When brocadecli is reading a yaml-configuration file, it will overwrite any give
    
    A typical config.yaml is included in the distribution file and could look like this:
    ```yaml
-   -   Hostname: rt1
-       Username: noc
-       Password: noc
-       EnablePassword: noc
-       DeviceType: CER
-       KeyFile: key
-       StrictHostCheck: False
-       SpeedMode: False
-       FileName: scripts
-       ExecMode: True
-   -   Hostname: rt2
-       Username: mucuser
-       Password: mucpass
-       EnablePassword: enablePass
-       DeviceType: MLX
+- Hostname: rt2
+  Username: mucuser
+  Password: mucpass
+  SSHPort: 22
+  EnablePassword: enablePass
+  StrictHostCheck: False
+  SpeedMode: False
+  ScriptFile: scripts/bgp_sum
+  Labels:
+    location: dus
+    environment: stage
+    type: cer
+
    ```
 
 Now from the command line it is only necessary to specify a hostname for the connection to your favourite router. If there is no script set (FileName) for configuration or executable mode set,
@@ -110,6 +104,20 @@ Total IPv6 and IPv6 VPN Cache Entry Usage on LPs:
  Module        Host    Network       Free      Total
       1           7      38339      81654     120000
  ```
+ 
+ If you want to execute the command on several routers, you can send a label, that
+ is user-defined in the yaml configuration. For example to run the ip cache command on any router
+ that is located in the location in Frankfurt you can enter the command line:
+  
+  ```bash
+ brocadecli -label "location=frankfurt" -script brocade_scripts/ip_caches 
+  ```
+  
+  If you only want to execute on any production device in Frakfurt, you can just add a label and also explain
+  a command-one liner directly on the prompt: 
+```bash
+   brocadecli -label "location=frankfurt,environment=production" -script "show ip bgp summary"
+```
  
  Great!
 

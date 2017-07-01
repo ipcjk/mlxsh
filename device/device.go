@@ -12,28 +12,32 @@ import (
 )
 
 type brocadeDevice struct {
-	port                                                     int
-	model, hostname, enable, username, password              string
-	readTimeout                                              time.Duration
-	writeTimeout                                             time.Duration
-	debug                                                    bool
-	speedMode                                                bool
-	sshUnprivilegedPrompt, sshEnabledPrompt, sshConfigPrompt string
-	sshConfigPromptPre                                       string
-	sshSession                                               *ssh.Session
-	sshConfig                                                *ssh.ClientConfig
-	sshStdinPipe                                             io.WriteCloser
-	sshStdoutPipe                                            io.Reader
-	sshStdErrPipe                                            io.Reader
-	sshConnection                                            *ssh.Client
-	promptModes                                              map[string]string
-	promptMode                                               string
+	port                                        int
+	enable, hostname, model, password, username string
+
+	debug bool
+
+	promptModes  map[string]string
+	promptMode   string
+	readTimeout  time.Duration
+	speedMode    bool
+	writeTimeout time.Duration
+
+	sshConfigPrompt, sshEnabledPrompt, sshUnprivilegedPrompt string
+
+	sshConfig          *ssh.ClientConfig
+	sshConfigPromptPre string
+	sshConnection      *ssh.Client
+	sshSession         *ssh.Session
+	sshStdinPipe       io.WriteCloser
+	sshStdoutPipe      io.Reader
+	sshStdErrPipe      io.Reader
 }
 
 /*
 Brocade returns a new
 brocadeDevice object
- */
+*/
 func Brocade(model string, hostname string, port int, enable, username, password string, readTimeout time.Duration,
 	writeTimeout time.Duration, debug bool, speedMode bool) *brocadeDevice {
 
@@ -127,7 +131,7 @@ func (b *brocadeDevice) write(command string) {
 	}
 
 	if b.debug {
-		fmt.Printf("Send command: %s", command)
+		log.Printf("Send command: %s", command)
 	}
 	time.Sleep(b.writeTimeout)
 }
@@ -314,7 +318,7 @@ func (b *brocadeDevice) PasteConfiguration(configuration io.Reader) (err error) 
 		}
 		fmt.Print("+")
 	}
-	fmt.Print("\n")
+	log.Print("\n")
 	return
 }
 
