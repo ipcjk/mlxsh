@@ -40,7 +40,7 @@ func init() {
 
 
 	if version {
-		log.Println("mlxsh 0.x (C) 2017 by Jörg Kost, jk@ip-clear.de")
+		log.Println("mlxsh 0.1 (C) 2017 by Jörg Kost, jk@ip-clear.de")
 		os.Exit(0)
 	}
 
@@ -48,7 +48,7 @@ func init() {
 		log.Println("Developer configuration active")
 		flag.StringVar(&cliRouterFile, "routerdb", "config_jk.yaml", "Input file in yaml for username,password and host configuration if not specified on command-line")
 	} else {
-		flag.StringVar(&cliRouterFile, "routerdb", "", "Input file in yaml for username,password and host configuration if not specified on command-line")
+		flag.StringVar(&cliRouterFile, "routerdb", "mlxsh.yaml", "Input file in yaml for username,password and host configuration if not specified on command-line")
 	}
 
 	flag.Parse()
