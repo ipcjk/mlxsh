@@ -70,7 +70,7 @@ Usage of ./mlxsh:
 
 ### configfile mode
 
-When brocadecli is reading a yaml-configuration file, it will overwrite any given parameter from the commandline. You can specify
+When mlx is reading a yaml-configuration file, it will overwrite any given parameter from the commandline. You can specify
   the configuration file with the configfile-parameter, by default it is looking for a file named config.yaml in the current working directory.
    
    A typical config.yaml is included in the distribution file and could look like this:
@@ -110,7 +110,7 @@ Total IPv6 and IPv6 VPN Cache Entry Usage on LPs:
  that is located in the location in Frankfurt you can enter the command line:
   
   ```bash
- mlxsh -label "location=frankfurt" -script brocade_scripts/ip_caches 
+ mlxsh -label "location=frankfurt" -script scripts/ip_caches 
   ```
   
   If you only want to execute on any production device in Frakfurt, you can just add a label and also explain

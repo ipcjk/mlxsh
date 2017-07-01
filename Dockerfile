@@ -3,7 +3,7 @@ RUN apk update
 RUN apk add unzip
 RUN apk add ca-certificates
 RUN apk add openssl
-WORKDIR /brocadecli
-RUN wget -O /brocadecli/brocadecli.linux https://github.com/ipcjk/brocadecli/raw/master/bin/brocadecli.linux
-RUN chmod 0755 /brocadecli/brocadecli.linux
+WORKDIR /mlxsh
+RUN wget -O /mlxsh/mlxsh https://github.com/ipcjk/mlxsh/raw/master/bin/mlxsh
+RUN chmod 0755 /mlxsh/mlxsh
 MAINTAINER Joerg Kost <jk@ip-clear.de>

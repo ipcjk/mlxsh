@@ -7,13 +7,14 @@ package main
 
 import (
 	"flag"
-	"github.com/ipcjk/mlxsh/device"
+	"github.com/ipcjk/mlxsh/netironDevice"
 	"github.com/ipcjk/mlxsh/libhost"
 	"io"
 	"log"
 	"os"
 	"strings"
 	"time"
+	"fmt"
 )
 
 var cliWriteTimeout, cliReadTimeout time.Duration
@@ -78,7 +79,7 @@ func init() {
 	}
 
 	/* Possible overwrite settings from CliParameters */
-	for x, _ := range selectedHosts {
+	for x := range selectedHosts {
 		selectedHosts[x].ApplyCliSettings(cliScriptFile, cliConfigFile, cliWriteTimeout, cliReadTimeout)
 	}
 }
@@ -86,8 +87,9 @@ func init() {
 func main() {
 	for _, selectHost := range selectedHosts {
 		var err error
+		fmt.Printf("<BEGIN %s>\n", selectHost.Hostname)
 
-		router := device.Brocade(selectHost.DeviceType, selectHost.Hostname, selectHost.SSHPort, selectHost.EnablePassword, selectHost.Username, selectHost.Password,
+		router := netironDevice.NetironDevice(selectHost.DeviceType, selectHost.Hostname, selectHost.SSHPort, selectHost.EnablePassword, selectHost.Username, selectHost.Password,
 			selectHost.ReadTimeout, selectHost.WriteTimeout, debug, selectHost.SpeedMode)
 
 		if err = router.ConnectPrivilegedMode(); err != nil {
@@ -127,5 +129,6 @@ func main() {
 			}
 		}
 		router.CloseConnection()
+		fmt.Printf("<END %s>\n", selectHost.Hostname)
 	}
 }
