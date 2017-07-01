@@ -6,7 +6,6 @@ import (
 	"golang.org/x/crypto/ssh"
 	"io"
 	"log"
-	"os"
 	"strings"
 	"time"
 )
@@ -22,6 +21,8 @@ type netironDevice struct {
 	readTimeout  time.Duration
 	speedMode    bool
 	writeTimeout time.Duration
+	w io.Writer
+	ExitCode int
 
 	sshConfigPrompt, sshEnabledPrompt, sshUnprivilegedPrompt string
 
@@ -39,12 +40,10 @@ NetironDevice returns a new
 netironDevice object
 */
 func NetironDevice(model string, hostname string, port int, enable, username, password string, readTimeout time.Duration,
-	writeTimeout time.Duration, debug bool, speedMode bool) *netironDevice {
-
-	log.SetOutput(os.Stdout)
+	writeTimeout time.Duration, debug bool, speedMode bool, w io.Writer) *netironDevice {
 
 	return &netironDevice{model: model, port: port, hostname: hostname, enable: enable, readTimeout: readTimeout,
-		speedMode:                 speedMode, writeTimeout: writeTimeout, debug: debug, promptModes: make(map[string]string),
+		speedMode:                 speedMode, writeTimeout: writeTimeout, debug: debug, w: w, promptModes: make(map[string]string),
 		sshConfig:                 &ssh.ClientConfig{User: username, Auth: []ssh.AuthMethod{ssh.Password(password)}}}
 }
 
@@ -94,10 +93,10 @@ func (b *netironDevice) ConnectPrivilegedMode() (err error) {
 	b.promptModes["sshNotEnabled"] = b.sshUnprivilegedPrompt
 
 	if b.debug {
-		log.Printf("Enabled:(%s)\n", b.sshEnabledPrompt)
-		log.Printf("Not-Enabled:(%s)\n", b.sshUnprivilegedPrompt)
-		log.Printf("Config:(%s)\n", b.sshConfigPrompt)
-		log.Printf("ConfigSection:(%s)\n", b.sshConfigPromptPre)
+		fmt.Fprintf(b.w,"Enabled:(%s)\n", b.sshEnabledPrompt)
+		fmt.Fprintf(b.w,"Not-Enabled:(%s)\n", b.sshUnprivilegedPrompt)
+		fmt.Fprintf(b.w,"Config:(%s)\n", b.sshConfigPrompt)
+		fmt.Fprintf(b.w,"ConfigSection:(%s)\n", b.sshConfigPromptPre)
 	}
 
 	if b.loginDialog() && b.debug {
@@ -131,7 +130,7 @@ func (b *netironDevice) write(command string) {
 	}
 
 	if b.debug {
-		log.Printf("Send command: %s", command)
+		fmt.Fprintf(b.w,"Send command: %s", command)
 	}
 	time.Sleep(b.writeTimeout)
 }
@@ -289,7 +288,7 @@ func (b *netironDevice) WriteConfiguration() (err error) {
 	}
 
 	if b.debug {
-		log.Println("Write startup-config done")
+		fmt.Fprint(b.w, "Write startup-config done")
 	}
 	return
 }
@@ -313,12 +312,12 @@ func (b *netironDevice) PasteConfiguration(configuration io.Reader) (err error) 
 				return err
 			}
 			if b.debug {
-				log.Printf("Captured %s\n", val)
+				fmt.Fprintf(b.w, "Captured %s\n", val)
 			}
 		}
-		fmt.Print("+")
+		fmt.Fprint(b.w, "+")
 	}
-	log.Print("\n")
+	fmt.Fprint(b.w, "\n")
 	return
 }
 
@@ -334,7 +333,7 @@ func (b *netironDevice) RunCommandsFromReader(commands io.Reader) (err error) {
 		if err != nil && err != io.EOF {
 			return err
 		}
-		log.Printf("%s\n", val)
+		fmt.Fprintf(b.w, "%s\n", val)
 	}
 	return err
 }

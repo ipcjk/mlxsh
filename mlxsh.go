@@ -15,6 +15,8 @@ import (
 	"strings"
 	"time"
 	"fmt"
+	"bytes"
+	"sync"
 )
 
 var cliWriteTimeout, cliReadTimeout time.Duration
@@ -23,6 +25,11 @@ var cliSpeedMode bool
 var debug, version bool
 var cliScriptFile, cliConfigFile, cliRouterFile, cliLabel string
 var selectedHosts []libhost.HostEntry
+type chanHost struct {
+	exitCode int
+	hostName string
+	message string
+}
 
 func init() {
 	flag.StringVar(&cliScriptFile, "script", "", "script file to to execute, if no file is found, its used as a direct command")
@@ -37,7 +44,6 @@ func init() {
 	flag.BoolVar(&debug, "debug", false, "Enable debug for read / write")
 	flag.BoolVar(&cliSpeedMode, "speedmode", false, "Enable speed mode write, will ignore any output from the cli while writing")
 	flag.BoolVar(&version, "version", false, "prints version and exit")
-
 
 	if version {
 		log.Println("mlxsh 0.1 (C) 2017 by Jörg Kost, jk@ip-clear.de")
@@ -85,50 +91,71 @@ func init() {
 }
 
 func main() {
-	for _, selectHost := range selectedHosts {
-		var err error
-		fmt.Printf("<BEGIN %s>\n", selectHost.Hostname)
+	hostChannel := make(chan chanHost, 1)
+	var wg sync.WaitGroup
 
-		router := netironDevice.NetironDevice(selectHost.DeviceType, selectHost.Hostname, selectHost.SSHPort, selectHost.EnablePassword, selectHost.Username, selectHost.Password,
-			selectHost.ReadTimeout, selectHost.WriteTimeout, debug, selectHost.SpeedMode)
+	// worker
+	for x := range selectedHosts {
+		wg.Add(1)
+		go func(x int) {
+			defer wg.Done()
+			var buffer = new(bytes.Buffer)
+			var err error
 
-		if err = router.ConnectPrivilegedMode(); err != nil {
-			log.Fatal(err)
-		}
+			router := netironDevice.NetironDevice(selectedHosts[x].DeviceType, selectedHosts[x].Hostname, selectedHosts[x].SSHPort, selectedHosts[x].EnablePassword, selectedHosts[x].Username, selectedHosts[x].Password,
+				selectedHosts[x].ReadTimeout, selectedHosts[x].WriteTimeout, debug, selectedHosts[x].SpeedMode, buffer)
 
-		if _, err = router.SkipPageDisplayMode(); err != nil {
-			log.Fatal(err)
-		}
+			if err = router.ConnectPrivilegedMode(); err != nil {
+				log.Fatal(err)
+			}
 
-		if err = router.GetPromptMode(); err != nil {
-			log.Fatal(err)
-		}
+			if _, err = router.SkipPageDisplayMode(); err != nil {
+				log.Fatal(err)
+			}
 
-		if selectHost.Filename != "" {
-			var input io.Reader
-			file, err := os.Open(selectHost.Filename)
-			defer file.Close()
+			if err = router.GetPromptMode(); err != nil {
+				log.Fatal(err)
+			}
 
-			if err != nil && os.IsNotExist(err) {
-				input = strings.NewReader(selectHost.Filename)
-				if debug {
-					log.Printf("Cant open file: %s, will read from command line argument\n", err)
+			if selectedHosts[x].Filename != "" {
+				var input io.Reader
+				file, err := os.Open(selectedHosts[x].Filename)
+				defer file.Close()
+
+				if err != nil && os.IsNotExist(err) {
+					input = strings.NewReader(selectedHosts[x].Filename)
+					if debug {
+						log.Printf("Cant open file: %s, will read from command line argument\n", err)
+					}
+				} else if err != nil {
+					log.Printf("Cant open file: %s\n", err)
+				} else {
+					input = file
 				}
-			} else if err != nil {
-				log.Printf("Cant open file: %s\n", err)
-			} else {
-				input = file
-			}
 
-			if selectHost.ExecMode == true {
-				router.RunCommandsFromReader(input)
-			} else {
-				router.ConfigureTerminalMode()
-				router.PasteConfiguration(input)
-				router.WriteConfiguration()
+				if selectedHosts[x].ExecMode == true {
+					router.RunCommandsFromReader(input)
+				} else {
+					router.ConfigureTerminalMode()
+					router.PasteConfiguration(input)
+					router.WriteConfiguration()
+				}
 			}
-		}
-		router.CloseConnection()
-		fmt.Printf("<END %s>\n", selectHost.Hostname)
+			router.CloseConnection()
+			hostChannel <- chanHost{exitCode:router.ExitCode, message:buffer.String(), hostName: selectedHosts[x].Hostname}
+			}(x)
 	}
+
+	// closer
+	go func () {
+		wg.Wait()
+		close(hostChannel)
+	} ()
+
+	// printer 
+	for elems := range hostChannel {
+		fmt.Println(elems.hostName)
+		fmt.Println(elems.message)
+	}
+
 }
