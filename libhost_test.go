@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/ipcjk/brocadecli/libhost"
+	"github.com/ipcjk/mlxsh/libhost"
 	"strings"
 	"testing"
 	"time"

@@ -7,8 +7,8 @@ package main
 
 import (
 	"flag"
-	"github.com/ipcjk/brocadecli/device"
-	"github.com/ipcjk/brocadecli/libhost"
+	"github.com/ipcjk/mlxsh/device"
+	"github.com/ipcjk/mlxsh/libhost"
 	"io"
 	"log"
 	"os"
@@ -37,8 +37,9 @@ func init() {
 	flag.BoolVar(&cliSpeedMode, "speedmode", false, "Enable speed mode write, will ignore any output from the cli while writing")
 	flag.BoolVar(&version, "version", false, "prints version and exit")
 
+
 	if version {
-		log.Println("brocadecli 0.x (C) 2017 by Jörg Kost, jk@ip-clear.de")
+		log.Println("mlxsh 0.x (C) 2017 by Jörg Kost, jk@ip-clear.de")
 		os.Exit(0)
 	}
 
