@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"golang.org/x/crypto/ssh"
 	"io"
-	"log"
 	"strings"
 	"time"
 )
@@ -21,8 +20,8 @@ type netironDevice struct {
 	readTimeout  time.Duration
 	speedMode    bool
 	writeTimeout time.Duration
-	w io.Writer
-	ExitCode int
+	w            io.Writer
+	ExitCode     int
 
 	sshConfigPrompt, sshEnabledPrompt, sshUnprivilegedPrompt string
 
@@ -43,8 +42,8 @@ func NetironDevice(model string, hostname string, port int, enable, username, pa
 	writeTimeout time.Duration, debug bool, speedMode bool, w io.Writer) *netironDevice {
 
 	return &netironDevice{model: model, port: port, hostname: hostname, enable: enable, readTimeout: readTimeout,
-		speedMode:                 speedMode, writeTimeout: writeTimeout, debug: debug, w: w, promptModes: make(map[string]string),
-		sshConfig:                 &ssh.ClientConfig{User: username, Auth: []ssh.AuthMethod{ssh.Password(password)}}}
+		speedMode: speedMode, writeTimeout: writeTimeout, debug: debug, w: w, promptModes: make(map[string]string),
+		sshConfig: &ssh.ClientConfig{User: username, Auth: []ssh.AuthMethod{ssh.Password(password)}}}
 }
 
 func (b *netironDevice) ConnectPrivilegedMode() (err error) {
@@ -93,13 +92,13 @@ func (b *netironDevice) ConnectPrivilegedMode() (err error) {
 	b.promptModes["sshNotEnabled"] = b.sshUnprivilegedPrompt
 
 	if b.debug {
-		fmt.Fprintf(b.w,"Enabled:(%s)\n", b.sshEnabledPrompt)
-		fmt.Fprintf(b.w,"Not-Enabled:(%s)\n", b.sshUnprivilegedPrompt)
-		fmt.Fprintf(b.w,"Config:(%s)\n", b.sshConfigPrompt)
-		fmt.Fprintf(b.w,"ConfigSection:(%s)\n", b.sshConfigPromptPre)
+		fmt.Fprintf(b.w, "Enabled:(%s)\n", b.sshEnabledPrompt)
+		fmt.Fprintf(b.w, "Not-Enabled:(%s)\n", b.sshUnprivilegedPrompt)
+		fmt.Fprintf(b.w, "Config:(%s)\n", b.sshConfigPrompt)
+		fmt.Fprintf(b.w, "ConfigSection:(%s)\n", b.sshConfigPromptPre)
 	}
 
-	if! b.loginDialog()  {
+	if !b.loginDialog() {
 		return fmt.Errorf("Cant login")
 	}
 	return
@@ -118,6 +117,7 @@ func (b *netironDevice) loginDialog() bool {
 	if err := b.write(b.enable + "\n"); err != nil {
 		return false
 	}
+
 	_, err = b.readTillEnabledPrompt()
 	if err != nil {
 		return false
@@ -135,7 +135,7 @@ func (b *netironDevice) write(command string) error {
 	}
 
 	if b.debug {
-		fmt.Fprintf(b.w,"Send command: %s", command)
+		fmt.Fprintf(b.w, "Send command: %s", command)
 	}
 	time.Sleep(b.writeTimeout)
 	return nil
@@ -154,7 +154,8 @@ WaitInput:
 			select {
 			case <-(time.After(b.readTimeout)):
 				if b.debug {
-					log.Println(string(lineBuffer[:]))
+					fmt.Fprint(b.w, "Time out")
+					fmt.Fprint(b.w, string(lineBuffer[:]))
 				}
 				b.sshSession.Close()
 				b.sshConnection.Close()
@@ -164,7 +165,10 @@ WaitInput:
 		}()
 		var err error
 		if _, err = io.ReadAtLeast(b.sshStdoutPipe, shortBuf, 1); err != nil {
+			/* FIXME */
 			if err != io.EOF {
+				return "", err
+			} else if err == io.EOF {
 				return "", err
 			}
 		}
@@ -192,12 +196,12 @@ func (b *netironDevice) ConfigureTerminalMode() error {
 	}
 
 	if b.debug {
-		log.Println("Configuration mode on")
+		fmt.Fprint(b.w, "Configuration mode on")
 	}
 	return nil
 }
 
-func (b *netironDevice) ExecPrivilegedMode(command string) error  {
+func (b *netironDevice) ExecPrivilegedMode(command string) error {
 	if err := b.SwitchMode("sshEnabled"); err != nil {
 		return fmt.Errorf("Cant switch to privileged mode: %s", err)
 	}
@@ -245,20 +249,20 @@ func (b *netironDevice) SwitchMode(targetMode string) error {
 		if targetMode == "sshConfig" {
 			b.ConfigureTerminalMode()
 		} else {
-			if err := b.write( "exit\n"); err != nil {
+			if err := b.write("exit\n"); err != nil {
 				return err
 			}
 		}
 	case "sshConfig":
 		if targetMode == "sshEnabled" {
-			if err := b.write( "end\n"); err != nil {
+			if err := b.write("end\n"); err != nil {
 				return err
 			}
 		} else {
-			if err := b.write( "end\n"); err != nil {
+			if err := b.write("end\n"); err != nil {
 				return err
 			}
-			if err := b.write( "exit\n"); err != nil {
+			if err := b.write("exit\n"); err != nil {
 				return err
 			}
 		}
@@ -275,7 +279,7 @@ func (b *netironDevice) SwitchMode(targetMode string) error {
 }
 
 func (b *netironDevice) GetPromptMode() error {
-	if err := b.write( "\n"); err != nil {
+	if err := b.write("\n"); err != nil {
 		return err
 	}
 
@@ -298,15 +302,15 @@ func (b *netironDevice) GetPromptMode() error {
 	}
 
 	return nil
-
 }
 
 func (b *netironDevice) WriteConfiguration() (err error) {
+
 	if err = b.SwitchMode("sshEnabled"); err != nil {
 		return err
 	}
 
-	if err := b.write( "write memory\n"); err != nil {
+	if err := b.write("write memory\n"); err != nil {
 		return err
 	}
 
@@ -318,14 +322,18 @@ func (b *netironDevice) WriteConfiguration() (err error) {
 	if b.debug {
 		fmt.Fprint(b.w, "Write startup-config done")
 	}
+
 	return
 }
 
 func (b *netironDevice) CloseConnection() {
-	b.sshConnection.Close()
+	if b.sshConnection != nil {
+		b.sshConnection.Close()
+	}
 }
 
 func (b *netironDevice) PasteConfiguration(configuration io.Reader) (err error) {
+
 	if err = b.SwitchMode("sshConfig"); err != nil {
 		return err
 	}
@@ -349,10 +357,12 @@ func (b *netironDevice) PasteConfiguration(configuration io.Reader) (err error) 
 		fmt.Fprint(b.w, "+")
 	}
 	fmt.Fprint(b.w, "\n")
+
 	return
 }
 
 func (b *netironDevice) RunCommandsFromReader(commands io.Reader) (err error) {
+
 	if err = b.SwitchMode("sshEnabled"); err != nil {
 		return fmt.Errorf("Cant switch to privileged mode: %s", err)
 	}
@@ -368,5 +378,6 @@ func (b *netironDevice) RunCommandsFromReader(commands io.Reader) (err error) {
 		}
 		fmt.Fprintf(b.w, "%s\n", val)
 	}
+
 	return err
 }

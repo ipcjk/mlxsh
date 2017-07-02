@@ -6,17 +6,17 @@
 package main
 
 import (
+	"bytes"
 	"flag"
-	"github.com/ipcjk/mlxsh/netironDevice"
+	"fmt"
 	"github.com/ipcjk/mlxsh/libhost"
+	"github.com/ipcjk/mlxsh/netironDevice"
 	"io"
 	"log"
 	"os"
 	"strings"
-	"time"
-	"fmt"
-	"bytes"
 	"sync"
+	"time"
 )
 
 var cliWriteTimeout, cliReadTimeout time.Duration
@@ -26,10 +26,11 @@ var debug, version bool
 var cliMaxParallel int
 var cliScriptFile, cliConfigFile, cliRouterFile, cliLabel string
 var selectedHosts []libhost.HostEntry
+
 type chanHost struct {
-	exitCode int
 	hostName string
-	message string
+	message  string
+	err      error
 }
 
 func init() {
@@ -95,8 +96,7 @@ func init() {
 func main() {
 	hostChannel := make(chan chanHost, 1)
 	var wg sync.WaitGroup
-	var semaphore = make(chan struct {}, cliMaxParallel)
-
+	var semaphore = make(chan struct{}, cliMaxParallel)
 
 	// worker
 	for x := range selectedHosts {
@@ -104,26 +104,30 @@ func main() {
 		go func(x int) {
 			semaphore <- struct{}{}
 
-			defer func () {
-				wg.Done()
-				<-semaphore
-			}()
-
-			var buffer = new(bytes.Buffer)
 			var err error
+			var buffer = new(bytes.Buffer)
 
 			router := netironDevice.NetironDevice(selectedHosts[x].DeviceType, selectedHosts[x].Hostname, selectedHosts[x].SSHPort, selectedHosts[x].EnablePassword, selectedHosts[x].Username, selectedHosts[x].Password,
 				selectedHosts[x].ReadTimeout, selectedHosts[x].WriteTimeout, debug, selectedHosts[x].SpeedMode, buffer)
 
-			defer router.CloseConnection()
+			defer func() {
+				if router != nil {
+					router.CloseConnection()
+				}
+				hostChannel <- chanHost{message: buffer.String(), hostName: selectedHosts[x].Hostname, err: err}
+				wg.Done()
+				<-semaphore
+			}()
+
+			if router == nil {
+				return
+			}
 
 			if err = router.ConnectPrivilegedMode(); err != nil {
-				router.ExitCode = 0x01
 				return
 			}
 
 			if _, err = router.SkipPageDisplayMode(); err != nil {
-				router.ExitCode = 0x01
 				return
 			}
 
@@ -147,42 +151,49 @@ func main() {
 					input = file
 				}
 
+				/* Execution Mode starts here */
 				if selectedHosts[x].ExecMode == true {
-					if err := router.RunCommandsFromReader(input); err !=  nil {
-						router.ExitCode = 0x02
+					if err := router.RunCommandsFromReader(input); err != nil {
 						return
 					}
 				} else {
-					if err := router.ConfigureTerminalMode(); err !=  nil {
-						router.ExitCode = 0x03
+
+					/* Configuration Mode starts here */
+					if err = router.ConfigureTerminalMode(); err != nil {
 						return
 					}
-					if err := router.PasteConfiguration(input); err !=  nil {
-						router.ExitCode = 0x04
+					if err := router.PasteConfiguration(input); err != nil {
 						return
 					}
-					if err := router.WriteConfiguration(); err !=  nil {
-						router.ExitCode = 0x05
+					if err := router.WriteConfiguration(); err != nil {
 						return
 					}
+
 				}
 			}
-			hostChannel <- chanHost{exitCode:router.ExitCode, message:buffer.String(), hostName: selectedHosts[x].Hostname}
-			}(x)
+		}(x)
 	}
 
 	// closer
-	go func () {
+	go func() {
 		wg.Wait()
 		close(hostChannel)
-	} ()
+	}()
 
 	// printer
 	for elems := range hostChannel {
 		fmt.Println("╔═══════════════════════════════════════════════════════════════════════════════════╗")
-		fmt.Printf("║%-39s                                            ║\n", elems.hostName)
-		fmt.Println("╚═══════════════════════════════════════════════════════════════════════════════════╝")
-		fmt.Println(elems.message)
+		if elems.err != nil {
+			fmt.Printf("║%-38s                                             ║\n", elems.hostName)
+			fmt.Printf("║%-38s                                             ║\n", "No success:")
+			fmt.Printf("║%-38s                                             ║\n", elems.err)
+			fmt.Println("╚═══════════════════════════════════════════════════════════════════════════════════╝")
+		} else {
+			fmt.Printf("║%-38s                                             ║\n", elems.hostName)
+			fmt.Println("╚═══════════════════════════════════════════════════════════════════════════════════╝")
+			fmt.Println(elems.message)
+		}
+
 	}
 
 }
