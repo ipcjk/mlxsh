@@ -23,6 +23,7 @@ var cliWriteTimeout, cliReadTimeout time.Duration
 var cliHostname, cliPassword, cliUsername, cliEnablePassword string
 var cliSpeedMode bool
 var debug, version bool
+var cliMaxParallel int
 var cliScriptFile, cliConfigFile, cliRouterFile, cliLabel string
 var selectedHosts []libhost.HostEntry
 type chanHost struct {
@@ -39,6 +40,7 @@ func init() {
 	flag.StringVar(&cliPassword, "password", "", "user password")
 	flag.StringVar(&cliUsername, "username", "", "username")
 	flag.StringVar(&cliEnablePassword, "enable", "", "enable password")
+	flag.IntVar(&cliMaxParallel, "c", 2, "concurrent working threads / connections to the routers")
 	flag.DurationVar(&cliReadTimeout, "readtimeout", time.Second*15, "timeout for reading poll on cli select")
 	flag.DurationVar(&cliWriteTimeout, "writetimeout", time.Millisecond*0, "timeout to stall after a write to cli")
 	flag.BoolVar(&debug, "debug", false, "Enable debug for read / write")
@@ -93,12 +95,17 @@ func init() {
 func main() {
 	hostChannel := make(chan chanHost, 1)
 	var wg sync.WaitGroup
+	var semaphore = make(chan struct {}, cliMaxParallel)
+
 
 	// worker
 	for x := range selectedHosts {
 		wg.Add(1)
 		go func(x int) {
+			semaphore <- struct{}{}
 			defer wg.Done()
+			defer func() { <-semaphore }()
+
 			var buffer = new(bytes.Buffer)
 			var err error
 
@@ -152,9 +159,11 @@ func main() {
 		close(hostChannel)
 	} ()
 
-	// printer 
+	// printer
 	for elems := range hostChannel {
-		fmt.Println(elems.hostName)
+		fmt.Println("╔═══════════════════════════════════════════════════════════════════════════════════╗")
+		fmt.Printf("║%-39s                                            ║\n", elems.hostName)
+		fmt.Println("╚═══════════════════════════════════════════════════════════════════════════════════╝")
 		fmt.Println(elems.message)
 	}
 
