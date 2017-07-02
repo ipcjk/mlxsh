@@ -99,23 +99,28 @@ func (b *netironDevice) ConnectPrivilegedMode() (err error) {
 		fmt.Fprintf(b.w,"ConfigSection:(%s)\n", b.sshConfigPromptPre)
 	}
 
-	if b.loginDialog() && b.debug {
-		log.Println("Logged in")
+	if! b.loginDialog()  {
+		return fmt.Errorf("Cant login")
 	}
 	return
 }
 
 func (b *netironDevice) loginDialog() bool {
-	b.write("enable\n")
-	_, err := b.readTill([]string{"Password:"})
-	if err != nil {
-		log.Fatal(err)
+	if err := b.write("enable\n"); err != nil {
+		return false
 	}
 
-	b.write(b.enable + "\n")
+	_, err := b.readTill([]string{"Password:"})
+	if err != nil {
+		return false
+	}
+
+	if err := b.write(b.enable + "\n"); err != nil {
+		return false
+	}
 	_, err = b.readTillEnabledPrompt()
 	if err != nil {
-		log.Fatal(err)
+		return false
 	}
 
 	b.promptMode = "sshEnabled"
@@ -123,16 +128,17 @@ func (b *netironDevice) loginDialog() bool {
 	return true
 }
 
-func (b *netironDevice) write(command string) {
+func (b *netironDevice) write(command string) error {
 	_, err := b.sshStdinPipe.Write([]byte(command))
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("Cant write to the ssh connection %s", err)
 	}
 
 	if b.debug {
 		fmt.Fprintf(b.w,"Send command: %s", command)
 	}
 	time.Sleep(b.writeTimeout)
+	return nil
 }
 
 func (b *netironDevice) readTill(search []string) (string, error) {
@@ -175,36 +181,45 @@ WaitInput:
 	return string(lineBuffer[:]), nil
 }
 
-func (b *netironDevice) ConfigureTerminalMode() {
-	b.write("conf t\n")
+func (b *netironDevice) ConfigureTerminalMode() error {
+	if err := b.write("conf t\n"); err != nil {
+		return err
+	}
+
 	_, err := b.readTill([]string{"(config)#"})
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("Cant find configure prompt: %s", err)
 	}
 
 	if b.debug {
 		log.Println("Configuration mode on")
 	}
+	return nil
 }
 
-func (b *netironDevice) ExecPrivilegedMode(command string) {
+func (b *netironDevice) ExecPrivilegedMode(command string) error  {
 	if err := b.SwitchMode("sshEnabled"); err != nil {
-		log.Fatal("Cant switch to enabled mode")
+		return fmt.Errorf("Cant switch to privileged mode: %s", err)
 	}
 
-	b.write(command + "\n")
+	if err := b.write(command + "\n"); err != nil {
+		return err
+	}
 	_, err := b.readTillEnabledPrompt()
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("Cant find  privileged mode: %s", err)
 	}
+	return nil
 }
 
 func (b *netironDevice) SkipPageDisplayMode() (string, error) {
 	if err := b.SwitchMode("sshEnabled"); err != nil {
-		return "", fmt.Errorf("Cant switch to enabled mode to execute skip-page-display")
+		return "", fmt.Errorf("Cant switch to enabled mode to execute skip-page-display: %s", err)
 	}
 
-	b.write("skip-page-display\n")
+	if err := b.write("skip-page-display\n"); err != nil {
+		return "", err
+	}
 	return b.readTill([]string{b.sshEnabledPrompt})
 }
 
@@ -230,14 +245,22 @@ func (b *netironDevice) SwitchMode(targetMode string) error {
 		if targetMode == "sshConfig" {
 			b.ConfigureTerminalMode()
 		} else {
-			b.write("exit\n")
+			if err := b.write( "exit\n"); err != nil {
+				return err
+			}
 		}
 	case "sshConfig":
 		if targetMode == "sshEnabled" {
-			b.write("end\n")
+			if err := b.write( "end\n"); err != nil {
+				return err
+			}
 		} else {
-			b.write("end\n")
-			b.write("exit\n")
+			if err := b.write( "end\n"); err != nil {
+				return err
+			}
+			if err := b.write( "exit\n"); err != nil {
+				return err
+			}
 		}
 	case "sshNotEnabled":
 		if targetMode == "sshEnabled" {
@@ -252,7 +275,9 @@ func (b *netironDevice) SwitchMode(targetMode string) error {
 }
 
 func (b *netironDevice) GetPromptMode() error {
-	b.write("\n")
+	if err := b.write( "\n"); err != nil {
+		return err
+	}
 
 	mode, err := b.readTill([]string{b.sshConfigPrompt, b.sshEnabledPrompt, b.sshUnprivilegedPrompt})
 	if err != nil {
@@ -281,7 +306,10 @@ func (b *netironDevice) WriteConfiguration() (err error) {
 		return err
 	}
 
-	b.write("write memory\n")
+	if err := b.write( "write memory\n"); err != nil {
+		return err
+	}
+
 	_, err = b.readTill([]string{"(config)#", "Write startup-config done."})
 	if err != nil {
 		return err
@@ -304,7 +332,10 @@ func (b *netironDevice) PasteConfiguration(configuration io.Reader) (err error) 
 
 	scanner := bufio.NewScanner(configuration)
 	for scanner.Scan() {
-		b.write(scanner.Text() + "\n")
+		if err := b.write(scanner.Text() + "\n"); err != nil {
+			return err
+		}
+
 		/* Wait till config prompt returns or not ? */
 		if !b.speedMode {
 			val, err := b.readTillConfigPromptSection()
@@ -328,7 +359,9 @@ func (b *netironDevice) RunCommandsFromReader(commands io.Reader) (err error) {
 
 	scanner := bufio.NewScanner(commands)
 	for scanner.Scan() {
-		b.write(scanner.Text() + "\n")
+		if err := b.write(scanner.Text() + "\n"); err != nil {
+			return err
+		}
 		val, err := b.readTillEnabledPrompt()
 		if err != nil && err != io.EOF {
 			return err

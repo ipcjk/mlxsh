@@ -103,8 +103,11 @@ func main() {
 		wg.Add(1)
 		go func(x int) {
 			semaphore <- struct{}{}
-			defer wg.Done()
-			defer func() { <-semaphore }()
+
+			defer func () {
+				wg.Done()
+				<-semaphore
+			}()
 
 			var buffer = new(bytes.Buffer)
 			var err error
@@ -112,16 +115,20 @@ func main() {
 			router := netironDevice.NetironDevice(selectedHosts[x].DeviceType, selectedHosts[x].Hostname, selectedHosts[x].SSHPort, selectedHosts[x].EnablePassword, selectedHosts[x].Username, selectedHosts[x].Password,
 				selectedHosts[x].ReadTimeout, selectedHosts[x].WriteTimeout, debug, selectedHosts[x].SpeedMode, buffer)
 
+			defer router.CloseConnection()
+
 			if err = router.ConnectPrivilegedMode(); err != nil {
-				log.Fatal(err)
+				router.ExitCode = 0x01
+				return
 			}
 
 			if _, err = router.SkipPageDisplayMode(); err != nil {
-				log.Fatal(err)
+				router.ExitCode = 0x01
+				return
 			}
 
 			if err = router.GetPromptMode(); err != nil {
-				log.Fatal(err)
+				return
 			}
 
 			if selectedHosts[x].Filename != "" {
@@ -141,14 +148,25 @@ func main() {
 				}
 
 				if selectedHosts[x].ExecMode == true {
-					router.RunCommandsFromReader(input)
+					if err := router.RunCommandsFromReader(input); err !=  nil {
+						router.ExitCode = 0x02
+						return
+					}
 				} else {
-					router.ConfigureTerminalMode()
-					router.PasteConfiguration(input)
-					router.WriteConfiguration()
+					if err := router.ConfigureTerminalMode(); err !=  nil {
+						router.ExitCode = 0x03
+						return
+					}
+					if err := router.PasteConfiguration(input); err !=  nil {
+						router.ExitCode = 0x04
+						return
+					}
+					if err := router.WriteConfiguration(); err !=  nil {
+						router.ExitCode = 0x05
+						return
+					}
 				}
 			}
-			router.CloseConnection()
 			hostChannel <- chanHost{exitCode:router.ExitCode, message:buffer.String(), hostName: selectedHosts[x].Hostname}
 			}(x)
 	}
