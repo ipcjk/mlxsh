@@ -108,7 +108,7 @@ func main() {
 			var buffer = new(bytes.Buffer)
 
 			router := netironDevice.NetironDevice(selectedHosts[x].DeviceType, selectedHosts[x].Hostname, selectedHosts[x].SSHPort, selectedHosts[x].EnablePassword, selectedHosts[x].Username, selectedHosts[x].Password,
-				selectedHosts[x].ReadTimeout, selectedHosts[x].WriteTimeout, debug, selectedHosts[x].SpeedMode, buffer)
+				selectedHosts[x].KeyFile, selectedHosts[x].ReadTimeout, selectedHosts[x].WriteTimeout, debug, selectedHosts[x].SpeedMode, buffer)
 
 			defer func() {
 				if router != nil {
@@ -120,6 +120,7 @@ func main() {
 			}()
 
 			if router == nil {
+				err = fmt.Errorf("Cant instance object")
 				return
 			}
 
@@ -187,6 +188,7 @@ func main() {
 			fmt.Printf("║%-38s                                             ║\n", elems.hostName)
 			fmt.Printf("║%-38s                                             ║\n", "No success:")
 			fmt.Printf("║%-38s                                             ║\n", elems.err)
+			fmt.Println(elems.message)
 			fmt.Println("╚═══════════════════════════════════════════════════════════════════════════════════╝")
 		} else {
 			fmt.Printf("║%-38s                                             ║\n", elems.hostName)

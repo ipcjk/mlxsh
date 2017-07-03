@@ -7,6 +7,7 @@ import (
 	"io"
 	"strings"
 	"time"
+	"io/ioutil"
 )
 
 type netironDevice struct {
@@ -38,12 +39,35 @@ type netironDevice struct {
 NetironDevice returns a new
 netironDevice object
 */
-func NetironDevice(model string, hostname string, port int, enable, username, password string, readTimeout time.Duration,
+func NetironDevice(model string, hostname string, port int, enable, username, password, keyFile string, readTimeout time.Duration,
 	writeTimeout time.Duration, debug bool, speedMode bool, w io.Writer) *netironDevice {
+	sshConfig := &ssh.ClientConfig{User: username, Auth: []ssh.AuthMethod{ssh.Password(password)}}
+
+	if keyFile != "" {
+		privateKey, err := PublicKeyFile(keyFile)
+		if err != nil && debug  {
+			fmt.Fprintf(w, "Cant load private key for ssh auth :(%s)\n", err)
+		} else {
+			sshConfig.Auth = append(sshConfig.Auth, privateKey)
+		}
+	}
 
 	return &netironDevice{model: model, port: port, hostname: hostname, enable: enable, readTimeout: readTimeout,
 		speedMode: speedMode, writeTimeout: writeTimeout, debug: debug, w: w, promptModes: make(map[string]string),
-		sshConfig: &ssh.ClientConfig{User: username, Auth: []ssh.AuthMethod{ssh.Password(password)}}}
+		sshConfig: sshConfig}
+}
+
+func PublicKeyFile(file string) (ssh.AuthMethod, error) {
+	buffer, err := ioutil.ReadFile(file)
+	if err != nil {
+		return nil, err
+	}
+
+	key, err := ssh.ParsePrivateKey(buffer)
+	if err != nil {
+		return nil, err
+	}
+	return ssh.PublicKeys(key), nil
 }
 
 func (b *netironDevice) ConnectPrivilegedMode() (err error) {
@@ -165,7 +189,7 @@ WaitInput:
 		}()
 		var err error
 		if _, err = io.ReadAtLeast(b.sshStdoutPipe, shortBuf, 1); err != nil {
-			/* FIXME */
+			/* FIXME, do something on EOF (could still contain our search buffer) */
 			if err != io.EOF {
 				return "", err
 			} else if err == io.EOF {
