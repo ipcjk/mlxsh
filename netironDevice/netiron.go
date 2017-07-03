@@ -10,20 +10,21 @@ import (
 	"io/ioutil"
 )
 
-type netironDevice struct {
-	port                                        int
-	enable, hostname, model, password, username string
+type NetironConfig struct {
+	Port int
+	Enable, Hostname, Model, Password, Username string
+	Debug, SpeedMode bool
+	ReadTimeout, WriteTimeout time.Duration
+	SSHKeyFile string
+	W io.Writer
+}
 
-	debug bool
+type netironDevice struct {
+
+	NetironConfig
 
 	promptModes  map[string]string
 	promptMode   string
-	readTimeout  time.Duration
-	speedMode    bool
-	writeTimeout time.Duration
-	w            io.Writer
-	ExitCode     int
-
 	sshConfigPrompt, sshEnabledPrompt, sshUnprivilegedPrompt string
 
 	sshConfig          *ssh.ClientConfig
@@ -39,21 +40,19 @@ type netironDevice struct {
 NetironDevice returns a new
 netironDevice object
 */
-func NetironDevice(model string, hostname string, port int, enable, username, password, keyFile string, readTimeout time.Duration,
-	writeTimeout time.Duration, debug bool, speedMode bool, w io.Writer) *netironDevice {
-	sshConfig := &ssh.ClientConfig{User: username, Auth: []ssh.AuthMethod{ssh.Password(password)}}
+func NetironDevice(Config NetironConfig) *netironDevice {
+	sshConfig := &ssh.ClientConfig{User: Config.Username, Auth: []ssh.AuthMethod{ssh.Password(Config.Password)}}
 
-	if keyFile != "" {
-		privateKey, err := PublicKeyFile(keyFile)
-		if err != nil && debug  {
-			fmt.Fprintf(w, "Cant load private key for ssh auth :(%s)\n", err)
+	if Config.SSHKeyFile != "" {
+		privateKey, err := PublicKeyFile(Config.SSHKeyFile)
+		if err != nil && Config.Debug  {
+			fmt.Fprintf(Config.W, "Cant load private key for ssh auth :(%s)\n", err)
 		} else {
 			sshConfig.Auth = append(sshConfig.Auth, privateKey)
 		}
 	}
 
-	return &netironDevice{model: model, port: port, hostname: hostname, enable: enable, readTimeout: readTimeout,
-		speedMode: speedMode, writeTimeout: writeTimeout, debug: debug, w: w, promptModes: make(map[string]string),
+	return &netironDevice{NetironConfig: Config, promptModes: make(map[string]string),
 		sshConfig: sshConfig}
 }
 
@@ -71,7 +70,7 @@ func PublicKeyFile(file string) (ssh.AuthMethod, error) {
 }
 
 func (b *netironDevice) ConnectPrivilegedMode() (err error) {
-	b.sshConnection, err = ssh.Dial("tcp", fmt.Sprintf("%s:%d", b.hostname, b.port), b.sshConfig)
+	b.sshConnection, err = ssh.Dial("tcp", fmt.Sprintf("%s:%d", b.Hostname, b.Port), b.sshConfig)
 	if err != nil {
 		return err
 	}
@@ -115,11 +114,11 @@ func (b *netironDevice) ConnectPrivilegedMode() (err error) {
 	b.promptModes["sshConfigPre"] = b.sshConfigPromptPre
 	b.promptModes["sshNotEnabled"] = b.sshUnprivilegedPrompt
 
-	if b.debug {
-		fmt.Fprintf(b.w, "Enabled:(%s)\n", b.sshEnabledPrompt)
-		fmt.Fprintf(b.w, "Not-Enabled:(%s)\n", b.sshUnprivilegedPrompt)
-		fmt.Fprintf(b.w, "Config:(%s)\n", b.sshConfigPrompt)
-		fmt.Fprintf(b.w, "ConfigSection:(%s)\n", b.sshConfigPromptPre)
+	if b.Debug {
+		fmt.Fprintf(b.W, "Enabled:(%s)\n", b.sshEnabledPrompt)
+		fmt.Fprintf(b.W, "Not-Enabled:(%s)\n", b.sshUnprivilegedPrompt)
+		fmt.Fprintf(b.W, "Config:(%s)\n", b.sshConfigPrompt)
+		fmt.Fprintf(b.W, "ConfigSection:(%s)\n", b.sshConfigPromptPre)
 	}
 
 	if !b.loginDialog() {
@@ -138,7 +137,7 @@ func (b *netironDevice) loginDialog() bool {
 		return false
 	}
 
-	if err := b.write(b.enable + "\n"); err != nil {
+	if err := b.write(b.Enable + "\n"); err != nil {
 		return false
 	}
 
@@ -158,10 +157,10 @@ func (b *netironDevice) write(command string) error {
 		return fmt.Errorf("Cant write to the ssh connection %s", err)
 	}
 
-	if b.debug {
-		fmt.Fprintf(b.w, "Send command: %s", command)
+	if b.Debug {
+		fmt.Fprintf(b.W, "Send command: %s", command)
 	}
-	time.Sleep(b.writeTimeout)
+	time.Sleep(b.WriteTimeout)
 	return nil
 }
 
@@ -176,10 +175,10 @@ WaitInput:
 		/* Reset the timer, when we received at least 1 byte */
 		go func() {
 			select {
-			case <-(time.After(b.readTimeout)):
-				if b.debug {
-					fmt.Fprint(b.w, "Time out")
-					fmt.Fprint(b.w, string(lineBuffer[:]))
+			case <-(time.After(b.ReadTimeout)):
+				if b.Debug {
+					fmt.Fprint(b.W, "Time out")
+					fmt.Fprint(b.W, string(lineBuffer[:]))
 				}
 				b.sshSession.Close()
 				b.sshConnection.Close()
@@ -219,8 +218,8 @@ func (b *netironDevice) ConfigureTerminalMode() error {
 		return fmt.Errorf("Cant find configure prompt: %s", err)
 	}
 
-	if b.debug {
-		fmt.Fprint(b.w, "Configuration mode on")
+	if b.Debug {
+		fmt.Fprint(b.W, "Configuration mode on")
 	}
 	return nil
 }
@@ -343,8 +342,8 @@ func (b *netironDevice) WriteConfiguration() (err error) {
 		return err
 	}
 
-	if b.debug {
-		fmt.Fprint(b.w, "Write startup-config done")
+	if b.Debug {
+		fmt.Fprint(b.W, "Write startup-config done")
 	}
 
 	return
@@ -369,18 +368,18 @@ func (b *netironDevice) PasteConfiguration(configuration io.Reader) (err error) 
 		}
 
 		/* Wait till config prompt returns or not ? */
-		if !b.speedMode {
+		if !b.SpeedMode {
 			val, err := b.readTillConfigPromptSection()
 			if err != nil {
 				return err
 			}
-			if b.debug {
-				fmt.Fprintf(b.w, "Captured %s\n", val)
+			if b.Debug {
+				fmt.Fprintf(b.W, "Captured %s\n", val)
 			}
 		}
-		fmt.Fprint(b.w, "+")
+		fmt.Fprint(b.W, "+")
 	}
-	fmt.Fprint(b.w, "\n")
+	fmt.Fprint(b.W, "\n")
 
 	return
 }
@@ -400,7 +399,7 @@ func (b *netironDevice) RunCommandsFromReader(commands io.Reader) (err error) {
 		if err != nil && err != io.EOF {
 			return err
 		}
-		fmt.Fprintf(b.w, "%s\n", val)
+		fmt.Fprintf(b.W, "%s\n", val)
 	}
 
 	return err

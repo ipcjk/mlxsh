@@ -107,8 +107,19 @@ func main() {
 			var err error
 			var buffer = new(bytes.Buffer)
 
-			router := netironDevice.NetironDevice(selectedHosts[x].DeviceType, selectedHosts[x].Hostname, selectedHosts[x].SSHPort, selectedHosts[x].EnablePassword, selectedHosts[x].Username, selectedHosts[x].Password,
-				selectedHosts[x].KeyFile, selectedHosts[x].ReadTimeout, selectedHosts[x].WriteTimeout, debug, selectedHosts[x].SpeedMode, buffer)
+			router := netironDevice.NetironDevice(netironDevice.NetironConfig{
+				Port: selectedHosts[x].SSHPort,
+				Hostname: selectedHosts[x].Hostname,
+				Model: selectedHosts[x].DeviceType,
+				Username: selectedHosts[x].Username,
+				Password: selectedHosts[x].Password,
+				Enable: selectedHosts[x].EnablePassword,
+				SSHKeyFile: selectedHosts[x].KeyFile,
+				ReadTimeout: selectedHosts[x].ReadTimeout,
+				WriteTimeout: selectedHosts[x].WriteTimeout,
+				Debug: debug,
+				SpeedMode: selectedHosts[x].SpeedMode,
+				W: buffer})
 
 			defer func() {
 				if router != nil {
