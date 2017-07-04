@@ -78,7 +78,7 @@ func init() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		
+
 	} else if cliHostname != "" {
 		selectedHosts = append(selectedHosts, libhost.HostConfig{Hostname: cliHostname, Username: cliUsername, Password: cliPassword, EnablePassword: cliEnablePassword, SpeedMode: cliSpeedMode, SSHPort: 22})
 	}
@@ -183,15 +183,17 @@ func main() {
 
 	// printer
 	for elems := range hostChannel {
-		fmt.Println("╔═══════════════════════════════════════════════════════════════════════╗")
+		fmt.Printf("╔══════════════════════════════════════════════════════════════════════╗\n")
 		if elems.err != nil {
-			fmt.Printf("║%-25s                                             ║\n", elems.hostName)
-			fmt.Printf("║%-25s                                             ║\n", "No success:")
-			fmt.Printf("║%-25s                                             ║\n", elems.err)
-			fmt.Println(elems.message)
+			fmt.Printf("║%-70s║\n", elems.hostName)
+			fmt.Printf("║%-70s║\n", "No success:")
+			fmt.Printf("║%-70s║\n", elems.err)
+			if elems.message != "" {
+				fmt.Println(elems.message)
+			}
 			fmt.Println("╚══════════════════════════════════════════════════════════════════════╝")
 		} else {
-			fmt.Printf("║%-25s                                             ║\n", elems.hostName)
+			fmt.Printf("║%-70s║\n", elems.hostName)
 			fmt.Println("╚══════════════════════════════════════════════════════════════════════╝")
 			fmt.Println(elems.message)
 		}
