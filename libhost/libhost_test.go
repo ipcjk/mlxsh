@@ -21,7 +21,7 @@ var hostYaml = `
     location: frankfurt
     environment: production
     type: netiron
-- Hostname: amsix2-router
+- Hostname: amsix-router
   Username: amsix-user
   Password: amxis-password
   EnablePassword: enableAmsix

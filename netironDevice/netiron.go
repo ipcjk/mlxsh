@@ -7,6 +7,7 @@ import (
 	"golang.org/x/crypto/ssh"
 	"io"
 	"io/ioutil"
+	"os"
 	"strings"
 	"time"
 )
@@ -42,11 +43,16 @@ func NetironDevice(Config NetironConfig) *netironDevice {
 
 	/* Allow authentication with ssh dsa or rsa key */
 	if Config.KeyFile != "" {
-		privateKey, err := PublicKeyFile(Config.KeyFile)
-		if err != nil && Config.Debug {
+		if file, err := os.Open(Config.KeyFile); err != nil {
 			fmt.Fprintf(Config.W, "Cant load private key for ssh auth :(%s)\n", err)
 		} else {
-			sshConfig.Auth = append(sshConfig.Auth, privateKey)
+			privateKey, err := LoadPrivateKey(file)
+
+			if err != nil && Config.Debug {
+				fmt.Fprintf(Config.W, "Cant load private key for ssh auth :(%s)\n", err)
+			} else {
+				sshConfig.Auth = append(sshConfig.Auth, privateKey)
+			}
 		}
 	}
 
@@ -65,8 +71,8 @@ func NetironDevice(Config NetironConfig) *netironDevice {
 		sshConfig: sshConfig}
 }
 
-func PublicKeyFile(file string) (ssh.AuthMethod, error) {
-	buffer, err := ioutil.ReadFile(file)
+func LoadPrivateKey(r io.Reader) (ssh.AuthMethod, error) {
+	buffer, err := ioutil.ReadAll(r)
 	if err != nil {
 		return nil, err
 	}
