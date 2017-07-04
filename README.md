@@ -13,7 +13,7 @@ For example, if you want to quickly commit the cloudflare.txt ip prefix lists, y
 
 ```bash 
 mlxsh -enable enablepassword  -hostname rt1 -password nocpassword -username noc \
--readtimeout 10s -config cloudflare.txt -speedmode
+ -config cloudflare.txt 
 ```
 
 Also it is a handy tool for daily maintenance tasks or cronjobs:
@@ -117,13 +117,38 @@ Total IPv6 and IPv6 VPN Cache Entry Usage on LPs:
  mlxsh -label "location=frankfurt" -script scripts/ip_caches 
   ```
   
-  If you only want to execute on any production device in Frakfurt, you can just add a label and also explain
-  a command-one liner directly on the prompt: 
+  If you only want to execute on any production device in Frakfurt, you can just add a label and also set a command-one liner directly on the prompt: 
 ```bash
    mlxsh -label "location=frankfurt,environment=production" -script "show ip bgp summary"
 ```
  
  Great!
+
+Other cool examples ro run mlxsh:
+```bash
+mlxsh -hostname frankfurt-rt1 -script "show uptime"
+mlxsh -hostname frankfurt-rt1 -username operator -password foo -enable foo -script "show ip bgp sum"
+```
+
+- grep-able output:
+
+```bash
+
+mlxsh -hostname frankfurt-rt1  -script "show uptime" | grep MP"
+```
+
+- label-based execution and configuration on router-groups, also great for scheduled maintenance within cron, reloading IX-configs at night, reload the router for testing HA, ….
+
+```bash
+mlxsh -label "location=frankfurt,type=mlx" -script 'show ip cache'
+mlxsh -label "location=munich" -config scripts/bgp_neighbor
+mlxsh -label "mission=DECIX" -routerdb='/home/mlxsh/mlxsh.yaml' -config /home/ixgen/decix
+```
+
+- parallel execution in background on router-groups with the -c flag, defaults to two
+```bash
+mlxsh -c10 -label "location=munich" -script "show ip bgp 8.8.8.8"
+````
 
 ### docker
 

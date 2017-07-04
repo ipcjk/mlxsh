@@ -3,11 +3,8 @@
   Password: noc
   EnablePassword: noc
   DeviceType: CER
-  SSHPort: 22
   KeyFile: key
-  StrictHostCheck: False
   SpeedMode: False
-  ScriptFile: scripts/bgp_sum
   Labels:
     location: dus
     environment: stage
@@ -17,9 +14,7 @@
   Password: mucpass
   SSHPort: 22
   EnablePassword: enablePass
-  StrictHostCheck: False
   SpeedMode: False
-  ScriptFile: scripts/bgp_sum
   Labels:
     location: dus
     environment: stage
