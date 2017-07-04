@@ -49,7 +49,7 @@ func init() {
 	flag.BoolVar(&version, "version", false, "prints version and exit")
 
 	if version {
-		log.Println("mlxsh 0.1 (C) 2017 by Jörg Kost, jk@ip-clear.de")
+		log.Println("mlxsh 0.2 (C) 2017 by Jörg Kost, jk@ip-clear.de")
 		os.Exit(0)
 	}
 

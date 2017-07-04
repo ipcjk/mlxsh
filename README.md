@@ -40,6 +40,8 @@ Command line arguments:
 
 ```bash
 Usage of ./mlxsh:
+  -c int
+    	concurrent working threads / connections to the routers (default 2)
   -config string
     	Configuration file to insert, its used as a direct command
   -debug
@@ -55,7 +57,7 @@ Usage of ./mlxsh:
   -readtimeout duration
     	timeout for reading poll on cli select (default 15s)
   -routerdb string
-    	Input file in yaml for username,password and host configuration if not specified on command-line
+    	Input file in yaml for username,password and host configuration if not specified on command-line (default "mlxsh.yaml")
   -script string
     	script file to to execute, if no file is found, its used as a direct command
   -speedmode
@@ -66,6 +68,8 @@ Usage of ./mlxsh:
     	prints version and exit
   -writetimeout duration
     	timeout to stall after a write to cli
+exit status 2
+
 ```
 
 ### configfile mode
