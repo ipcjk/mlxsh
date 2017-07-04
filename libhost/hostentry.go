@@ -13,7 +13,7 @@ import (
 HostEntry represents the host structure,
 that is being imported from the yaml configuration
 */
-type HostEntry struct {
+type HostConfig struct {
 	ConfigFile      string            `yaml:"ConfigFile"`
 	DeviceType      string            `yaml:"DeviceType"`
 	EnablePassword  string            `yaml:"EnablePassword"`
@@ -36,7 +36,7 @@ type HostEntry struct {
 MatchLabels checks the given labels on the command line and
 returns true or false
 */
-func (h HostEntry) MatchLabels(userLabels string) bool {
+func (h HostConfig) MatchLabels(userLabels string) bool {
 	userLabels += ","
 
 	selectArgs := strings.Split(userLabels, ",")
@@ -64,16 +64,16 @@ func (h HostEntry) MatchLabels(userLabels string) bool {
 /* LoadFromYAML reads a yaml configuration reader source
 and returns a slice of hosts
 */
-func LoadAllFromYAML(r io.Reader) ([]HostEntry, error) {
-	var hostsConfig []HostEntry
+func LoadAllFromYAML(r io.Reader) ([]HostConfig, error) {
+	var hostsConfig []HostConfig
 	source, err := ioutil.ReadAll(r)
 	if err != nil {
-		return []HostEntry{}, fmt.Errorf("Cant read from yaml source: %s", err)
+		return []HostConfig{}, fmt.Errorf("Cant read from yaml source: %s", err)
 	}
 
 	err = yaml.Unmarshal(source, &hostsConfig)
 	if err != nil {
-		return []HostEntry{}, fmt.Errorf("Cant parse  yaml source: %s", err)
+		return []HostConfig{}, fmt.Errorf("Cant parse  yaml source: %s", err)
 	}
 
 	return hostsConfig, nil
@@ -82,7 +82,7 @@ func LoadAllFromYAML(r io.Reader) ([]HostEntry, error) {
 /* ApplyCliSettings overwrites given cli parameters/set defaults
  */
 
-func (h *HostEntry) ApplyCliSettings(scriptFile, configFile string, writeTimeout time.Duration, readTimeout time.Duration) {
+func (h *HostConfig) ApplyCliSettings(scriptFile, configFile string, writeTimeout time.Duration, readTimeout time.Duration) {
 
 	if configFile != "" {
 		h.Filename = configFile
@@ -109,23 +109,16 @@ func (h *HostEntry) ApplyCliSettings(scriptFile, configFile string, writeTimeout
 /* LoadMatchFromYAML reads the yaml configuration reader source
 and returns a slice of hosts that matches the given labels
 */
-func LoadMatchesFromYAML(r io.Reader, label, hostname string) ([]HostEntry, error) {
-	var hostsConfig []HostEntry
-	var hostsMatch []HostEntry
+func LoadMatchesFromYAML(r io.Reader, label, hostname string) ([]HostConfig, error) {
+	var hostsConfig []HostConfig
+	var hostsMatch []HostConfig
 
 	hostsConfig, err := LoadAllFromYAML(r)
 	if err != nil {
-		return []HostEntry{}, fmt.Errorf("Cant load from yaml source: %s", err)
+		return []HostConfig{}, fmt.Errorf("Cant load from yaml source: %s", err)
 	}
 
 	for _, Host := range hostsConfig {
-
-		/* Set reasonable defaults */
-		if Host.SSHPort == 0 {
-			Host.SSHPort = 22
-		} else {
-			Host.SSHPort = Host.SSHPort
-		}
 
 		if hostname != "" && hostname == Host.Hostname {
 			hostsMatch = append(hostsMatch, Host)

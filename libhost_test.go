@@ -26,7 +26,7 @@ var hostYaml = `
   Username: amsix-user
   Password: amxis-password
   EnablePassword: enableAmsix
-  KeyFile: id_rsa_amsix
+  SSHKeyFile: id_rsa_amsix
   SSHPort: 22
   StrictHostCheck: False
   SpeedMode: False

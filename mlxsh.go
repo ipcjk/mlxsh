@@ -25,7 +25,7 @@ var cliSpeedMode bool
 var debug, version bool
 var cliMaxParallel int
 var cliScriptFile, cliConfigFile, cliRouterFile, cliLabel string
-var selectedHosts []libhost.HostEntry
+var selectedHosts []libhost.HostConfig
 
 type chanHost struct {
 	hostName string
@@ -80,7 +80,7 @@ func init() {
 		}
 
 	} else if cliHostname != "" {
-		selectedHosts = append(selectedHosts, libhost.HostEntry{Hostname: cliHostname, Username: cliUsername, Password: cliPassword, EnablePassword: cliEnablePassword, SpeedMode: cliSpeedMode, SSHPort: 22})
+		selectedHosts = append(selectedHosts, libhost.HostConfig{Hostname: cliHostname, Username: cliUsername, Password: cliPassword, EnablePassword: cliEnablePassword, SpeedMode: cliSpeedMode, SSHPort: 22})
 	}
 
 	if len(selectedHosts) == 0 {
@@ -107,19 +107,8 @@ func main() {
 			var err error
 			var buffer = new(bytes.Buffer)
 
-			router := netironDevice.NetironDevice(netironDevice.NetironConfig{
-				Port: selectedHosts[x].SSHPort,
-				Hostname: selectedHosts[x].Hostname,
-				Model: selectedHosts[x].DeviceType,
-				Username: selectedHosts[x].Username,
-				Password: selectedHosts[x].Password,
-				Enable: selectedHosts[x].EnablePassword,
-				SSHKeyFile: selectedHosts[x].KeyFile,
-				ReadTimeout: selectedHosts[x].ReadTimeout,
-				WriteTimeout: selectedHosts[x].WriteTimeout,
-				Debug: debug,
-				SpeedMode: selectedHosts[x].SpeedMode,
-				W: buffer})
+			router := netironDevice.NetironDevice(
+				netironDevice.NetironConfig{HostConfig: selectedHosts[x], Debug: debug, W: buffer})
 
 			defer func() {
 				if router != nil {
@@ -164,7 +153,7 @@ func main() {
 				}
 
 				/* Execution Mode starts here */
-				if selectedHosts[x].ExecMode == true {
+				if selectedHosts[x].ExecMode {
 					if err := router.RunCommandsFromReader(input); err != nil {
 						return
 					}
@@ -194,16 +183,16 @@ func main() {
 
 	// printer
 	for elems := range hostChannel {
-		fmt.Println("╔═══════════════════════════════════════════════════════════════════════════════════╗")
+		fmt.Println("╔═══════════════════════════════════════════════════════════════════════╗")
 		if elems.err != nil {
-			fmt.Printf("║%-38s                                             ║\n", elems.hostName)
-			fmt.Printf("║%-38s                                             ║\n", "No success:")
-			fmt.Printf("║%-38s                                             ║\n", elems.err)
+			fmt.Printf("║%-25s                                             ║\n", elems.hostName)
+			fmt.Printf("║%-25s                                             ║\n", "No success:")
+			fmt.Printf("║%-25s                                             ║\n", elems.err)
 			fmt.Println(elems.message)
-			fmt.Println("╚═══════════════════════════════════════════════════════════════════════════════════╝")
+			fmt.Println("╚══════════════════════════════════════════════════════════════════════╝")
 		} else {
-			fmt.Printf("║%-38s                                             ║\n", elems.hostName)
-			fmt.Println("╚═══════════════════════════════════════════════════════════════════════════════════╝")
+			fmt.Printf("║%-25s                                             ║\n", elems.hostName)
+			fmt.Println("╚══════════════════════════════════════════════════════════════════════╝")
 			fmt.Println(elems.message)
 		}
 

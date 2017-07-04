@@ -3,28 +3,25 @@ package netironDevice
 import (
 	"bufio"
 	"fmt"
+	"github.com/ipcjk/mlxsh/libhost"
 	"golang.org/x/crypto/ssh"
 	"io"
+	"io/ioutil"
 	"strings"
 	"time"
-	"io/ioutil"
 )
 
 type NetironConfig struct {
-	Port int
-	Enable, Hostname, Model, Password, Username string
-	Debug, SpeedMode bool
-	ReadTimeout, WriteTimeout time.Duration
-	SSHKeyFile string
-	W io.Writer
+	libhost.HostConfig
+	Debug bool
+	W     io.Writer
 }
 
 type netironDevice struct {
-
 	NetironConfig
 
-	promptModes  map[string]string
-	promptMode   string
+	promptModes                                              map[string]string
+	promptMode                                               string
 	sshConfigPrompt, sshEnabledPrompt, sshUnprivilegedPrompt string
 
 	sshConfig          *ssh.ClientConfig
@@ -43,13 +40,25 @@ netironDevice object
 func NetironDevice(Config NetironConfig) *netironDevice {
 	sshConfig := &ssh.ClientConfig{User: Config.Username, Auth: []ssh.AuthMethod{ssh.Password(Config.Password)}}
 
-	if Config.SSHKeyFile != "" {
-		privateKey, err := PublicKeyFile(Config.SSHKeyFile)
-		if err != nil && Config.Debug  {
+	/* Allow authentication with ssh dsa or rsa key */
+	if Config.KeyFile != "" {
+		privateKey, err := PublicKeyFile(Config.KeyFile)
+		if err != nil && Config.Debug {
 			fmt.Fprintf(Config.W, "Cant load private key for ssh auth :(%s)\n", err)
 		} else {
 			sshConfig.Auth = append(sshConfig.Auth, privateKey)
 		}
+	}
+
+	/* Set reasonable
+	defaults
+	*/
+	if Config.SSHPort == 0 {
+		Config.SSHPort = 22
+	}
+
+	if Config.ReadTimeout == 0 {
+		Config.ReadTimeout = time.Second * 15
 	}
 
 	return &netironDevice{NetironConfig: Config, promptModes: make(map[string]string),
@@ -70,7 +79,7 @@ func PublicKeyFile(file string) (ssh.AuthMethod, error) {
 }
 
 func (b *netironDevice) ConnectPrivilegedMode() (err error) {
-	b.sshConnection, err = ssh.Dial("tcp", fmt.Sprintf("%s:%d", b.Hostname, b.Port), b.sshConfig)
+	b.sshConnection, err = ssh.Dial("tcp", fmt.Sprintf("%s:%d", b.Hostname, b.SSHPort), b.sshConfig)
 	if err != nil {
 		return err
 	}
@@ -137,7 +146,7 @@ func (b *netironDevice) loginDialog() bool {
 		return false
 	}
 
-	if err := b.write(b.Enable + "\n"); err != nil {
+	if err := b.write(b.EnablePassword + "\n"); err != nil {
 		return false
 	}
 
