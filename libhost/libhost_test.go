@@ -1,11 +1,11 @@
-package main
+package libhost_test
 
 import (
 	"fmt"
-	"github.com/ipcjk/mlxsh/libhost"
 	"strings"
 	"testing"
 	"time"
+	. "github.com/ipcjk/mlxsh/libhost"
 )
 
 var hostYaml = `
@@ -21,7 +21,7 @@ var hostYaml = `
     location: frankfurt
     environment: production
     type: netiron
-- Hostname: amsix-router
+- Hostname: amsix2-router
   Username: amsix-user
   Password: amxis-password
   EnablePassword: enableAmsix
@@ -52,7 +52,7 @@ func TestLoadFromYaml(t *testing.T) {
 
 	r := strings.NewReader(hostYaml)
 
-	hostsConfig, err := libhost.LoadAllFromYAML(r)
+	hostsConfig, err := LoadAllFromYAML(r)
 	if err != nil {
 		t.Error("Cant parse YAML")
 	}
@@ -72,7 +72,7 @@ func TestLoadHostNameFromYaml(t *testing.T) {
 	cliLabel := ""
 	cliHostname := "amsix-router"
 
-	selectedHosts, err := libhost.LoadMatchesFromYAML(r, cliLabel, cliHostname)
+	selectedHosts, err := LoadMatchesFromYAML(r, cliLabel, cliHostname)
 	if err != nil {
 		t.Error(err)
 	}
@@ -81,7 +81,7 @@ func TestLoadHostNameFromYaml(t *testing.T) {
 		t.Errorf("Too many or less hosts found: %d", len(selectedHosts))
 	}
 
-	if selectedHosts[0].Hostname != "amsix-router" {
+	if len(selectedHosts) > 1 && selectedHosts[0].Hostname != "amsix-router" {
 		t.Error("Router not found")
 	}
 
@@ -89,7 +89,7 @@ func TestLoadHostNameFromYaml(t *testing.T) {
 
 func TestMatchLabels(t *testing.T) {
 	r := strings.NewReader(hostYaml)
-	hostsConfig, err := libhost.LoadAllFromYAML(r)
+	hostsConfig, err := LoadAllFromYAML(r)
 	if err != nil {
 		t.Error("Cant parse YAML")
 	}
@@ -113,7 +113,7 @@ func TestMatchLabels(t *testing.T) {
 
 func TestAppCli(t *testing.T) {
 	r := strings.NewReader(hostYaml)
-	hostsConfig, err := libhost.LoadAllFromYAML(r)
+	hostsConfig, err := LoadAllFromYAML(r)
 	if err != nil {
 		t.Error("Cant parse YAML")
 	}

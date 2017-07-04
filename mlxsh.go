@@ -63,9 +63,11 @@ func init() {
 	flag.Parse()
 
 	if cliHostname == "" && cliLabel == "" {
-		log.Fatal("No host/router or selector given, abort...")
+		log.Println("No host/router or selector given, abort...")
+		os.Exit(0)
 	} else if cliHostname != "" && cliLabel != "" {
-		log.Fatal("Cant run in targetHost-mode and Groupselector")
+		log.Println("Cant run in targetHost-mode and Groupselector")
+		os.Exit(0)
 	}
 
 	if cliRouterFile != "" {
