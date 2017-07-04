@@ -78,7 +78,7 @@ func init() {
 		if err != nil {
 			log.Fatal(err)
 		}
-
+		
 	} else if cliHostname != "" {
 		selectedHosts = append(selectedHosts, libhost.HostConfig{Hostname: cliHostname, Username: cliUsername, Password: cliPassword, EnablePassword: cliEnablePassword, SpeedMode: cliSpeedMode, SSHPort: 22})
 	}
@@ -154,7 +154,7 @@ func main() {
 
 				/* Execution Mode starts here */
 				if selectedHosts[x].ExecMode {
-					if err := router.RunCommandsFromReader(input); err != nil {
+					if err := router.RunCommands(input); err != nil {
 						return
 					}
 				} else {

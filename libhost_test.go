@@ -15,7 +15,6 @@ var hostYaml = `
   EnablePassword: enableDecix
   KeyFile: id_rsa_decix
   SSHPort: 2242
-  StrictHostCheck: False
   SpeedMode: False
   ScriptFile: scripts/bgp_summary
   Labels:
@@ -64,6 +63,26 @@ func TestLoadFromYaml(t *testing.T) {
 
 	if hostsConfig[1].Labels["location"] != "amsterdam" {
 		t.Error("Cant find city of amsterdam in list member 1")
+	}
+
+}
+
+func TestLoadHostNameFromYaml(t *testing.T) {
+	r := strings.NewReader(hostYaml)
+	cliLabel := ""
+	cliHostname := "amsix-router"
+
+	selectedHosts, err := libhost.LoadMatchesFromYAML(r, cliLabel, cliHostname)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if len(selectedHosts) != 1 {
+		t.Errorf("Too many or less hosts found: %d", len(selectedHosts))
+	}
+
+	if selectedHosts[0].Hostname != "amsix-router" {
+		t.Error("Router not found")
 	}
 
 }

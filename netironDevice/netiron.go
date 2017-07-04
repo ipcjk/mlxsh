@@ -393,7 +393,7 @@ func (b *netironDevice) PasteConfiguration(configuration io.Reader) (err error) 
 	return
 }
 
-func (b *netironDevice) RunCommandsFromReader(commands io.Reader) (err error) {
+func (b *netironDevice) RunCommands(commands io.Reader) (err error) {
 
 	if err = b.SwitchMode("sshEnabled"); err != nil {
 		return fmt.Errorf("Cant switch to privileged mode: %s", err)
