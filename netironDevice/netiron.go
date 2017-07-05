@@ -180,8 +180,8 @@ func (b *netironDevice) write(command string) error {
 }
 
 func (b *netironDevice) readTill(search []string) (string, error) {
-	shortBuf := make([]byte, 1)
-	lineBuffer := make([]byte, 0, 32)
+	var lineBuf string
+	shortBuf := make([]byte, 256)
 	foundToken := make(chan struct{}, 0)
 	defer close(foundToken)
 
@@ -193,7 +193,6 @@ WaitInput:
 			case <-(time.After(b.ReadTimeout)):
 				if b.Debug {
 					fmt.Fprint(b.W, "Time out")
-					fmt.Fprint(b.W, string(lineBuffer[:]))
 				}
 				b.sshSession.Close()
 				b.sshConnection.Close()
@@ -202,7 +201,8 @@ WaitInput:
 			}
 		}()
 		var err error
-		if _, err = io.ReadAtLeast(b.sshStdoutPipe, shortBuf, 1); err != nil {
+		var n int
+		if n, err = io.ReadAtLeast(b.sshStdoutPipe, shortBuf, 1); err != nil {
 			/* FIXME, do something on EOF (could still contain our search buffer) */
 			if err != io.EOF {
 				return "", err
@@ -211,16 +211,16 @@ WaitInput:
 			}
 		}
 		foundToken <- struct{}{}
-		lineBuffer = append(lineBuffer, shortBuf[0])
+		lineBuf += string(shortBuf[:n])
 		for x := range search {
-			if strings.Contains(string(lineBuffer[:]), search[x]) {
+			if strings.Contains(lineBuf, search[x]) {
 				break WaitInput
 			}
 		}
 
 	}
 
-	return string(lineBuffer[:]), nil
+	return string(lineBuf), nil
 }
 
 func (b *netironDevice) ConfigureTerminalMode() error {
