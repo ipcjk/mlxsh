@@ -363,6 +363,10 @@ func (b *netironDevice) WriteConfiguration() (err error) {
 }
 
 func (b *netironDevice) CloseConnection() {
+	if b.sshSession != nil {
+		b.sshSession.Close()
+	}
+
 	if b.sshConnection != nil {
 		b.sshConnection.Close()
 	}
