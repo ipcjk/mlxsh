@@ -41,7 +41,7 @@ Command line arguments:
 ```bash
 Usage of ./mlxsh:
   -c int
-    	concurrent working threads / connections to the routers (default 2)
+    	concurrent working threads / connections to the routers default 2
   -config string
     	Configuration file to insert, its used as a direct command
   -debug
@@ -55,9 +55,9 @@ Usage of ./mlxsh:
   -password string
     	user password
   -readtimeout duration
-    	timeout for reading poll on cli select (default 15s)
+    	timeout for reading poll on cli select default 15s
   -routerdb string
-    	Input file in yaml for username,password and host configuration if not specified on command-line (default "mlxsh.yaml")
+    	Input file in yaml for username,password and host configuration if not specified on command-line default "mlxsh.yaml"
   -script string
     	script file to to execute, if no file is found, its used as a direct command
   -speedmode
@@ -134,7 +134,7 @@ mlxsh -hostname frankfurt-rt1 -username operator -password foo -enable foo -scri
 
 ```bash
 
-mlxsh -hostname frankfurt-rt1  -script "show uptime" | grep MP"
+mlxsh -hostname frankfurt-rt1  -script "show uptime" | grep MP
 ```
 
 - label-based execution and configuration on router-groups, also great for scheduled maintenance within cron, reloading IX-configs at night, reload the router for testing HA, ….
@@ -149,6 +149,8 @@ mlxsh -label "mission=DECIX" -routerdb='/home/mlxsh/mlxsh.yaml' -config /home/ix
 ```bash
 mlxsh -c10 -label "location=munich" -script "show ip bgp 8.8.8.8"
 ````
+
+
 
 ### docker
 
