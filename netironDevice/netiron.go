@@ -44,11 +44,11 @@ func NetironDevice(Config NetironConfig) *netironDevice {
 	/* Allow authentication with ssh dsa or rsa key */
 	if Config.KeyFile != "" {
 		if file, err := os.Open(Config.KeyFile); err != nil {
-			fmt.Fprintf(Config.W, "Cant load private key for ssh auth :(%s)\n", err)
+			if Config.Debug {
+				fmt.Fprintf(Config.W, "Cant load private key for ssh auth :(%s)\n", err)
+			}
 		} else {
-			privateKey, err := LoadPrivateKey(file)
-
-			if err != nil && Config.Debug {
+			if privateKey, err := LoadPrivateKey(file); err != nil && Config.Debug {
 				fmt.Fprintf(Config.W, "Cant load private key for ssh auth :(%s)\n", err)
 			} else {
 				sshConfig.Auth = append(sshConfig.Auth, privateKey)
@@ -308,9 +308,7 @@ func (b *netironDevice) SwitchMode(targetMode string) error {
 		} else {
 			fmt.Println("LOGIN & CONF Mode")
 		}
-
 	}
-
 	return nil
 }
 
