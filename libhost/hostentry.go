@@ -37,8 +37,8 @@ MatchLabels checks the given labels on the command line and
 returns true or false
 */
 func (h HostConfig) MatchLabels(userLabels string) bool {
-	userLabels += ","
 
+	userLabels += ","
 	selectArgs := strings.Split(userLabels, ",")
 
 	for _, label := range selectArgs {
@@ -65,7 +65,9 @@ func (h HostConfig) MatchLabels(userLabels string) bool {
 and returns a slice of hosts
 */
 func LoadAllFromYAML(r io.Reader) ([]HostConfig, error) {
+
 	var hostsConfig []HostConfig
+
 	source, err := ioutil.ReadAll(r)
 	if err != nil {
 		return []HostConfig{}, fmt.Errorf("Cant read from yaml source: %s", err)
@@ -110,6 +112,7 @@ func (h *HostConfig) ApplyCliSettings(scriptFile, configFile string, writeTimeou
 and returns a slice of hosts that matches the given labels
 */
 func LoadMatchesFromYAML(r io.Reader, label, hostname string) ([]HostConfig, error) {
+
 	var hostsConfig []HostConfig
 	var hostsMatch []HostConfig
 

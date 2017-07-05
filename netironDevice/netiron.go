@@ -276,6 +276,7 @@ func (b *netironDevice) readTillConfigPromptSection() (string, error) {
 }
 
 func (b *netironDevice) SwitchMode(targetMode string) error {
+
 	if b.promptMode == targetMode {
 		return nil
 	}
@@ -313,6 +314,7 @@ func (b *netironDevice) SwitchMode(targetMode string) error {
 }
 
 func (b *netironDevice) GetPromptMode() error {
+
 	if err := b.write("\n"); err != nil {
 		return err
 	}
