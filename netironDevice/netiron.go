@@ -187,12 +187,12 @@ func (b *netironDevice) readTill(search []string) (string, error) {
 
 WaitInput:
 	for {
-		/* Reset the timer, when we received at least 1 byte */
+		/* Reset the timer, when we received bytes for reading */
 		go func() {
 			select {
 			case <-(time.After(b.ReadTimeout)):
 				if b.Debug {
-					fmt.Fprint(b.W, "Time out")
+					fmt.Fprint(b.W, "Timed out waiting for incoming buffer")
 				}
 				b.sshSession.Close()
 				b.sshConnection.Close()
@@ -217,9 +217,7 @@ WaitInput:
 				break WaitInput
 			}
 		}
-
 	}
-
 	return string(lineBuf), nil
 }
 
