@@ -144,7 +144,8 @@ func main() {
 				defer file.Close()
 
 				if err != nil && os.IsNotExist(err) {
-					input = strings.NewReader(selectedHosts[x].Filename)
+					command := strings.Replace(selectedHosts[x].Filename, ";", "\n", -1)
+					input = strings.NewReader(command)
 					if debug {
 						log.Printf("Cant open file: %s, will read from command line argument\n", err)
 					}
