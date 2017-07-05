@@ -2,10 +2,10 @@ package libhost_test
 
 import (
 	"fmt"
+	. "github.com/ipcjk/mlxsh/libhost"
 	"strings"
 	"testing"
 	"time"
-	. "github.com/ipcjk/mlxsh/libhost"
 )
 
 var hostYaml = `

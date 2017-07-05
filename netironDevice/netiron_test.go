@@ -2,10 +2,10 @@ package netironDevice_test
 
 import "testing"
 import (
-	"github.com/ipcjk/mlxsh/netironDevice"
-	"strings"
 	"bytes"
 	"github.com/ipcjk/mlxsh/libhost"
+	"github.com/ipcjk/mlxsh/netironDevice"
+	"strings"
 	"time"
 )
 
@@ -19,10 +19,10 @@ func TestLoadingSSHKey(t *testing.T) {
 
 func TestNetironConstructor(t *testing.T) {
 	var Config = libhost.HostConfig{
-		DeviceType: "MLX",
-		Hostname: "localhost",
-		Username: "myuser",
-		Password: "mypassword",
+		DeviceType:     "MLX",
+		Hostname:       "localhost",
+		Username:       "myuser",
+		Password:       "mypassword",
 		EnablePassword: "enablepassword",
 	}
 
@@ -38,9 +38,9 @@ func TestNetironConstructor(t *testing.T) {
 	}
 
 	/*
-	if Config.ReadTimeout != time.Second*15 {
-		t.Error("Wrong readtimeout in default settings")
-	}
+		if Config.ReadTimeout != time.Second*15 {
+			t.Error("Wrong readtimeout in default settings")
+		}
 	*/
 
 	if Config.WriteTimeout != time.Second*0 {
@@ -55,10 +55,10 @@ func TestNetironConstructor(t *testing.T) {
 
 func TestSSHConnect(t *testing.T) {
 	var Config = libhost.HostConfig{
-		DeviceType: "MLX",
-		Hostname: "localhost",
-		Username: "myuser",
-		Password: "mypassword",
+		DeviceType:     "MLX",
+		Hostname:       "localhost",
+		Username:       "myuser",
+		Password:       "mypassword",
 		EnablePassword: "enablepassword",
 	}
 
@@ -71,14 +71,14 @@ func TestSSHConnect(t *testing.T) {
 
 	/* Expect that
 	sshClients fail
-	 */
+	*/
 	if err := router.ConnectPrivilegedMode(); err == nil {
 		t.Error("Logged into localhost with default settings, this cant be true!")
 	}
 
 }
 
-var sampleSSHKey =  `-----BEGIN RSA PRIVATE KEY-----
+var sampleSSHKey = `-----BEGIN RSA PRIVATE KEY-----
 MIIEpAIBAAKCAQEA3h5u/Jb0TKlwLAwOgaVeHevwMdCqwf2mJRvVMheNOeu2qSEk
 18Rf3YS3URkUvZhdQmd/fafJYALamcxl1nO9IVEUvWXBIn3pjKR5Yf6rl4bl8V7n
 MemWb+7vbCaSClHDsNXzn0PaDea+r3q0IbwovinRiCeLanfcctioBxiq6Z5ZXOTQ
