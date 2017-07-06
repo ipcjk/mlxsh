@@ -1,8 +1,7 @@
 FROM alpine:latest
 RUN apk update
-RUN apk add unzip
-RUN apk add ca-certificates
-RUN apk add openssl
+RUN apk  --no-cache upgrade
+RUN apk  --no-cache add unzip ca-certificates openssl
 WORKDIR /mlxsh
 RUN wget https://github.com/ipcjk/mlxsh/releases/download/0.1/release.tar.gz
 RUN tar xfz release.tar.gz --strip 1
