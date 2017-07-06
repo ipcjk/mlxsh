@@ -1,3 +1,6 @@
+[![Go Report Card](https://goreportcard.com/badge/github.com/ipcjk/mlxsh)](https://goreportcard.com/report/github.com/ipcjk/mlxsh)
+[![Docker Repository on Quay](https://quay.io/repository/ipcjk/mlxsh/status?token=ee40e2b7-dc86-4ee2-8269-184501ca09a2 "Docker Repository on Quay")](https://quay.io/repository/ipcjk/mlxsh)
+
 # mlxsh
 
 mlxsh is the missing power command-line that enables you to enter configuration changes to groups of Brocade / Extreme Networks Netiron devices (

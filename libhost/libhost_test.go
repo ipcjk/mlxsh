@@ -118,11 +118,11 @@ func TestAppCli(t *testing.T) {
 		t.Error("Cant parse YAML")
 	}
 
-	for x, _ := range hostsConfig {
+	for x := range hostsConfig {
 		hostsConfig[x].ApplyCliSettings("script", "config", time.Second*10, time.Second*5)
 	}
 
-	for x, _ := range hostsConfig {
+	for x := range hostsConfig {
 		if hostsConfig[x].ScriptFile != "script" || hostsConfig[x].ConfigFile != "config" {
 			t.Error("ApplyCliSettings did not set parameters right ")
 		}
