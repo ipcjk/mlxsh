@@ -1,5 +1,6 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/ipcjk/mlxsh)](https://goreportcard.com/report/github.com/ipcjk/mlxsh)
 [![Docker Repository on Quay](https://quay.io/repository/ipcjk/mlxsh/status?token=ee40e2b7-dc86-4ee2-8269-184501ca09a2 "Docker Repository on Quay")](https://quay.io/repository/ipcjk/mlxsh)
+[![Build Status](https://travis-ci.org/ipcjk/mlxsh.svg?branch=master)](https://travis-ci.org/ipcjk/mlxsh)
 
 # mlxsh
 
