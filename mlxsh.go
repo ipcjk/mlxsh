@@ -48,11 +48,6 @@ func init() {
 	flag.BoolVar(&cliSpeedMode, "speedmode", false, "Enable speed mode write, will ignore any output from the cli while writing")
 	flag.BoolVar(&version, "version", false, "prints version and exit")
 
-	if version {
-		log.Println("mlxsh 0.2 (C) 2017 by Jörg Kost, jk@ip-clear.de")
-		os.Exit(0)
-	}
-
 	if os.Getenv("JK") == "1" {
 		log.Println("Developer configuration active")
 		flag.StringVar(&cliRouterFile, "routerdb", "config_jk.yaml", "Input file in yaml for username,password and host configuration if not specified on command-line")
@@ -61,6 +56,11 @@ func init() {
 	}
 
 	flag.Parse()
+
+	if version {
+		log.Println("mlxsh 0.2 (C) 2017 by Jörg Kost, jk@ip-clear.de")
+		os.Exit(0)
+	}
 
 	if cliHostname == "" && cliLabel == "" {
 		log.Println("No host/router or selector given, abort...")
