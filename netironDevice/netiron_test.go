@@ -1,11 +1,11 @@
 package netironDevice_test
 
-import "testing"
 import (
 	"bytes"
 	"github.com/ipcjk/mlxsh/libhost"
 	"github.com/ipcjk/mlxsh/netironDevice"
 	"strings"
+	"testing"
 	"time"
 )
 
