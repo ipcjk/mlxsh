@@ -81,7 +81,9 @@ func init() {
 			log.Fatal(err)
 		}
 
-	} else if cliHostname != "" {
+	}
+	/*  Hostname on cli but did not found in list */
+	if cliHostname != "" && len(selectedHosts) == 0 {
 		selectedHosts = append(selectedHosts, libhost.HostConfig{Hostname: cliHostname, Username: cliUsername, Password: cliPassword, EnablePassword: cliEnablePassword, SpeedMode: cliSpeedMode, SSHPort: 22})
 	}
 

@@ -71,7 +71,7 @@ func NetironDevice(Config NetironConfig) *netironDevice {
 	}
 
 	return &netironDevice{NetironConfig: Config, promptModes: make(map[string]string),
-		sshClientConfig:                   sshConfig}
+		sshClientConfig:                   sshClientConfig}
 }
 
 func LoadPrivateKey(r io.Reader) (ssh.AuthMethod, error) {
