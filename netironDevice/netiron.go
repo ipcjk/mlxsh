@@ -45,8 +45,8 @@ func NetironDevice(Config NetironConfig) *netironDevice {
 	sshClientConfig.SetDefaults()
 	/* Add some ciphers for old ironware versions (xmr,mlx,turobiron,...)
 	 */
-	sshClientConfig.Ciphers = append(sshClientConfig.Ciphers, "aes256-cbc", "aes192-cbc")
-
+	sshClientConfig.Ciphers = append(sshClientConfig.Ciphers, "aes128-cbc", "3des-cbc")
+	
 	/* Allow authentication with ssh dsa or rsa key */
 	if Config.KeyFile != "" {
 		if file, err := os.Open(Config.KeyFile); err != nil {
