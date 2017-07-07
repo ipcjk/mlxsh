@@ -25,7 +25,7 @@ type netironDevice struct {
 	promptMode                                               string
 	sshConfigPrompt, sshEnabledPrompt, sshUnprivilegedPrompt string
 
-	sshConfig          *ssh.ClientConfig
+	sshClientConfig    *ssh.ClientConfig
 	sshConfigPromptPre string
 	sshConnection      *ssh.Client
 	sshSession         *ssh.Session
@@ -39,7 +39,8 @@ NetironDevice returns a new
 netironDevice object
 */
 func NetironDevice(Config NetironConfig) *netironDevice {
-	sshConfig := &ssh.ClientConfig{User: Config.Username, Auth: []ssh.AuthMethod{ssh.Password(Config.Password)}}
+
+	sshClientConfig := &ssh.ClientConfig{User: Config.Username, Auth: []ssh.AuthMethod{ssh.Password(Config.Password)}}
 
 	/* Allow authentication with ssh dsa or rsa key */
 	if Config.KeyFile != "" {
@@ -51,10 +52,12 @@ func NetironDevice(Config NetironConfig) *netironDevice {
 			if privateKey, err := LoadPrivateKey(file); err != nil && Config.Debug {
 				fmt.Fprintf(Config.W, "Cant load private key for ssh auth :(%s)\n", err)
 			} else {
-				sshConfig.Auth = append(sshConfig.Auth, privateKey)
+				sshClientConfig.Auth = append(sshClientConfig.Auth, privateKey)
 			}
 		}
 	}
+
+	sshClientConfig.Ciphers = append(sshClientConfig.Ciphers, "aes256-cbc", "aes192-cbc", "aes128-cbc", "3des-cbc")
 
 	/* Set reasonable
 	defaults
@@ -68,7 +71,7 @@ func NetironDevice(Config NetironConfig) *netironDevice {
 	}
 
 	return &netironDevice{NetironConfig: Config, promptModes: make(map[string]string),
-		sshConfig: sshConfig}
+		sshClientConfig:                   sshConfig}
 }
 
 func LoadPrivateKey(r io.Reader) (ssh.AuthMethod, error) {
@@ -85,7 +88,7 @@ func LoadPrivateKey(r io.Reader) (ssh.AuthMethod, error) {
 }
 
 func (b *netironDevice) ConnectPrivilegedMode() (err error) {
-	b.sshConnection, err = ssh.Dial("tcp", fmt.Sprintf("%s:%d", b.Hostname, b.SSHPort), b.sshConfig)
+	b.sshConnection, err = ssh.Dial("tcp", fmt.Sprintf("%s:%d", b.Hostname, b.SSHPort), b.sshClientConfig)
 	if err != nil {
 		return err
 	}
