@@ -78,6 +78,28 @@ func TestSSHConnect(t *testing.T) {
 
 }
 
+func TestDetectPrompt(t *testing.T) {
+	var Config = libhost.HostConfig{
+		DeviceType:     "MLX",
+		Hostname:       "localhost",
+		Username:       "myuser",
+		Password:       "mypassword",
+		EnablePassword: "enablepassword",
+	}
+
+	router := netironDevice.NetironDevice(
+		netironDevice.NetironConfig{HostConfig: Config, Debug: true, W: new(bytes.Buffer)})
+
+	if err := router.DetectSetPrompt("SSH@frankfurt-rt1#"); err != nil {
+		t.Errorf("Cant detect prompt! :%s", err)
+	}
+
+	if err := router.DetectSetPrompt("SSH@frankfurt-rt1>"); err != nil {
+		t.Errorf("Cant detect prompt! :%s", err)
+	}
+
+}
+
 var sampleSSHKey = `-----BEGIN RSA PRIVATE KEY-----
 MIIEpAIBAAKCAQEA3h5u/Jb0TKlwLAwOgaVeHevwMdCqwf2mJRvVMheNOeu2qSEk
 18Rf3YS3URkUvZhdQmd/fafJYALamcxl1nO9IVEUvWXBIn3pjKR5Yf6rl4bl8V7n

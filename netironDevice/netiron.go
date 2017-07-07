@@ -10,6 +10,7 @@ import (
 	"os"
 	"strings"
 	"time"
+	"regexp"
 )
 
 type NetironConfig struct {
@@ -46,7 +47,7 @@ func NetironDevice(Config NetironConfig) *netironDevice {
 	/* Add some ciphers for old ironware versions (xmr,mlx,turobiron,...)
 	 */
 	sshClientConfig.Ciphers = append(sshClientConfig.Ciphers, "aes128-cbc", "3des-cbc")
-	
+
 	/* Allow authentication with ssh dsa or rsa key */
 	if Config.KeyFile != "" {
 		if file, err := os.Open(Config.KeyFile); err != nil {
@@ -121,11 +122,42 @@ func (b *netironDevice) ConnectPrivilegedMode() (err error) {
 		return err
 	}
 
-	b.sshUnprivilegedPrompt, err = b.readTill([]string{">"})
+	prompt, err := b.readTill([]string{">", "#"})
 	if err != nil {
 		return err
 	}
 
+	if err := b.DetectSetPrompt(prompt); err != nil {
+		return err
+	}
+
+	/* Try login if promptMode is NonEnabled */
+	if b.promptMode == "sshNonEnabled" && !b.loginDialog() {
+		return fmt.Errorf("Cant login")
+	}
+	return
+}
+
+func (b *netironDevice) DetectSetPrompt(prompt string) error {
+	matched, err := regexp.MatchString(">$", prompt)
+	if err == nil && matched {
+		b.promptMode = "sshNonEnabled"
+		b.sshUnprivilegedPrompt = prompt
+	} else if err != nil {
+		return fmt.Errorf("Cant run regexp for prompt detection, weird!")
+	}
+
+	matched, err = regexp.MatchString("#$", prompt)
+	if err == nil && matched {
+		b.promptMode = "sshEnabled"
+		b.sshUnprivilegedPrompt = strings.Replace(prompt, "#", ">", 1)
+	} else if err != nil {
+		return fmt.Errorf("Cant run regexp for prompt detection, weird!")
+	}
+
+	/*
+	FIXME: Need regex for replace the last one, not the first match
+	 */
 	b.sshEnabledPrompt = strings.Replace(b.sshUnprivilegedPrompt, ">", "#", 1)
 	b.sshConfigPrompt = strings.Replace(b.sshUnprivilegedPrompt, ">", "(config)#", 1)
 	b.sshConfigPromptPre = strings.Replace(b.sshUnprivilegedPrompt, ">", "(config", 1)
@@ -142,10 +174,12 @@ func (b *netironDevice) ConnectPrivilegedMode() (err error) {
 		fmt.Fprintf(b.W, "ConfigSection:(%s)\n", b.sshConfigPromptPre)
 	}
 
-	if !b.loginDialog() {
-		return fmt.Errorf("Cant login")
+	if b.sshEnabledPrompt == "" || b.sshUnprivilegedPrompt == "" {
+		return fmt.Errorf("Cant detect any prompt")
 	}
-	return
+
+	return nil
+
 }
 
 func (b *netironDevice) loginDialog() bool {
