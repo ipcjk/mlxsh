@@ -22,7 +22,7 @@ import (
 var cliWriteTimeout, cliReadTimeout time.Duration
 var cliHostname, cliPassword, cliUsername, cliEnablePassword string
 var cliSpeedMode bool
-var debug, version bool
+var debug, version, quiet bool
 var cliMaxParallel int
 var cliScriptFile, cliConfigFile, cliRouterFile, cliLabel string
 var selectedHosts []libhost.HostConfig
@@ -46,6 +46,7 @@ func init() {
 	flag.DurationVar(&cliWriteTimeout, "writetimeout", time.Millisecond*0, "timeout to stall after a write to cli")
 	flag.BoolVar(&debug, "debug", false, "Enable debug for read / write")
 	flag.BoolVar(&cliSpeedMode, "speedmode", false, "Enable speed mode write, will ignore any output from the cli while writing")
+	flag.BoolVar(&quiet, "q", false, "quiet mode, no output except error on connecting & co")
 	flag.BoolVar(&version, "version", false, "prints version and exit")
 
 	if os.Getenv("JK") == "1" {
@@ -198,9 +199,11 @@ func main() {
 			}
 			fmt.Println("╚══════════════════════════════════════════════════════════════════════╝")
 		} else {
-			fmt.Printf("║%-70s║\n", elems.hostName)
-			fmt.Println("╚══════════════════════════════════════════════════════════════════════╝")
-			fmt.Println(elems.message)
+			if quiet == false {
+				fmt.Printf("║%-70s║\n", elems.hostName)
+				fmt.Println("╚══════════════════════════════════════════════════════════════════════╝")
+				fmt.Println(elems.message)
+			}
 		}
 
 	}
