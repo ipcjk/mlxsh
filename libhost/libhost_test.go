@@ -36,7 +36,7 @@ var hostYaml = `
     type: netiron
 - Hostname: foo-router
   Username: amsix-user
-  Password: amxis-password
+  Password: amsix-password
   EnablePassword: enableAmsix
   KeyFile: id_rsa_amsix
   SSHPort: 22
@@ -72,6 +72,10 @@ func TestLoadFromYaml(t *testing.T) {
 
 	if hostsConfig[2].SSHPort != 22 {
 		t.Error("Cant find ssh port for amsterdam router")
+	}
+
+	if hostsConfig[2].KeyFile != "id_rsa_amsix" {
+		t.Error("Cant find ssh key file for amsterdam router")
 	}
 
 }
