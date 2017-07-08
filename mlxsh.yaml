@@ -12,6 +12,7 @@
 - Hostname: rt2
   Username: mucuser
   Password: mucpass
+  SSHIP: 172.16.31.10
   SSHPort: 22
   EnablePassword: enablePass
   SpeedMode: False

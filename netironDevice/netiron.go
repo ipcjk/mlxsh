@@ -8,9 +8,9 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"regexp"
 	"strings"
 	"time"
-	"regexp"
 )
 
 type NetironConfig struct {
@@ -75,7 +75,7 @@ func NetironDevice(Config NetironConfig) *netironDevice {
 	}
 
 	return &netironDevice{NetironConfig: Config, promptModes: make(map[string]string),
-		sshClientConfig:                   sshClientConfig}
+		sshClientConfig: sshClientConfig}
 }
 
 func LoadPrivateKey(r io.Reader) (ssh.AuthMethod, error) {
@@ -92,7 +92,15 @@ func LoadPrivateKey(r io.Reader) (ssh.AuthMethod, error) {
 }
 
 func (b *netironDevice) ConnectPrivilegedMode() (err error) {
-	b.sshConnection, err = ssh.Dial("tcp", fmt.Sprintf("%s:%d", b.Hostname, b.SSHPort), b.sshClientConfig)
+	var addr string
+
+	if b.SSHIP != "" {
+		fmt.Sprintf("%s:%d", b.SSHIP, b.SSHPort)
+	} else {
+		fmt.Sprintf("%s:%d", b.Hostname, b.SSHPort)
+	}
+
+	b.sshConnection, err = ssh.Dial("tcp", addr, b.sshClientConfig)
 	if err != nil {
 		return err
 	}
@@ -156,8 +164,8 @@ func (b *netironDevice) DetectSetPrompt(prompt string) error {
 	}
 
 	/*
-	FIXME: Need regex for replace the last one, not the first match
-	 */
+		FIXME: Need regex for replace the last one, not the first match
+	*/
 	b.sshEnabledPrompt = strings.Replace(b.sshUnprivilegedPrompt, ">", "#", 1)
 	b.sshConfigPrompt = strings.Replace(b.sshUnprivilegedPrompt, ">", "(config)#", 1)
 	b.sshConfigPromptPre = strings.Replace(b.sshUnprivilegedPrompt, ">", "(config", 1)

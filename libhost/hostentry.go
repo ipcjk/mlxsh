@@ -26,6 +26,7 @@ type HostConfig struct {
 	ReadTimeout     time.Duration     `yaml:"Readtimeout"`
 	ScriptFile      string            `yaml:"ScriptFile"`
 	SpeedMode       bool              `yaml:"SpeedMode"`
+	SSHIP           string            `yaml:"SSHIP"`
 	SSHPort         int               `yaml:"SSHPort"`
 	StrictHostCheck bool              `yaml:"StrictHostCheck"`
 	Username        string            `yaml:"Username"`

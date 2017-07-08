@@ -40,6 +40,7 @@ var hostYaml = `
   EnablePassword: enableAmsix
   KeyFile: id_rsa_amsix
   SSHPort: 22
+  SSHIP: 172.15.4.1
   StrictHostCheck: False
   SpeedMode: False
   ScriptFile: scripts/bgp_summary
@@ -63,6 +64,10 @@ func TestLoadFromYaml(t *testing.T) {
 
 	if hostsConfig[1].Labels["location"] != "amsterdam" {
 		t.Error("Cant find city of amsterdam in list member 1")
+	}
+
+	if hostsConfig[2].Labels["SSHIP"] != "172.15.4.1" {
+		t.Error("Cant find host ip for amsterdam router")
 	}
 
 }
