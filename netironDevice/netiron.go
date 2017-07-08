@@ -95,9 +95,9 @@ func (b *netironDevice) ConnectPrivilegedMode() (err error) {
 	var addr string
 
 	if b.SSHIP != "" {
-		fmt.Sprintf("%s:%d", b.SSHIP, b.SSHPort)
+		addr = fmt.Sprintf("%s:%d", b.SSHIP, b.SSHPort)
 	} else {
-		fmt.Sprintf("%s:%d", b.Hostname, b.SSHPort)
+		addr = fmt.Sprintf("%s:%d", b.Hostname, b.SSHPort)
 	}
 
 	b.sshConnection, err = ssh.Dial("tcp", addr, b.sshClientConfig)
