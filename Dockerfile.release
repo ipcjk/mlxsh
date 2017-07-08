@@ -3,7 +3,7 @@ RUN apk update
 RUN apk  --no-cache upgrade
 RUN apk  --no-cache add unzip ca-certificates openssl
 WORKDIR /mlxsh
-RUN wget https://github.com/ipcjk/mlxsh/releases/download/0.2a/release.tar.gz
+RUN wget https://github.com/ipcjk/mlxsh/releases/download/0.2b/release.tar.gz
 RUN tar xfz release.tar.gz --strip 1
 RUN rm release.tar.gz
 RUN chmod 0755 /mlxsh/mlxsh.mac && chmod 0755 /mlxsh/mlxsh

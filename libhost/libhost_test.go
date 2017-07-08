@@ -66,8 +66,12 @@ func TestLoadFromYaml(t *testing.T) {
 		t.Error("Cant find city of amsterdam in list member 1")
 	}
 
-	if hostsConfig[2].Labels["SSHIP"] != "172.15.4.1" {
-		t.Error("Cant find host ip for amsterdam router")
+	if hostsConfig[2].SSHIP != "172.15.4.1" {
+		t.Error("Cant find ssh ip for amsterdam router")
+	}
+
+	if hostsConfig[2].SSHPort != 22 {
+		t.Error("Cant find ssh port for amsterdam router")
 	}
 
 }
