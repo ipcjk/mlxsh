@@ -10,7 +10,7 @@ import (
 )
 
 /*
-HostEntry represents the host structure,
+HostConfig represents the host structure,
 that is being imported from the yaml configuration
 */
 type HostConfig struct {
@@ -62,7 +62,7 @@ func (h HostConfig) MatchLabels(userLabels string) bool {
 	return true
 }
 
-/* LoadFromYAML reads a yaml configuration reader source
+/* LoadAllFromYAML reads a yaml configuration reader source
 and returns a slice of hosts
 */
 func LoadAllFromYAML(r io.Reader) ([]HostConfig, error) {
@@ -82,7 +82,8 @@ func LoadAllFromYAML(r io.Reader) ([]HostConfig, error) {
 	return hostsConfig, nil
 }
 
-/* ApplyCliSettings overwrites given cli parameters/set defaults
+/* ApplyCliSettings
+overwrites given cli parameters/set defaults
  */
 
 func (h *HostConfig) ApplyCliSettings(scriptFile, configFile string, writeTimeout time.Duration, readTimeout time.Duration) {
@@ -109,7 +110,7 @@ func (h *HostConfig) ApplyCliSettings(scriptFile, configFile string, writeTimeou
 
 }
 
-/* LoadMatchFromYAML reads the yaml configuration reader source
+/* LoadMatchesFromYAML reads the yaml configuration reader source
 and returns a slice of hosts that matches the given labels
 */
 func LoadMatchesFromYAML(r io.Reader, label, hostname string) ([]HostConfig, error) {

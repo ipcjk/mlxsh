@@ -13,6 +13,9 @@ import (
 	"time"
 )
 
+/* NetironConfig is an init struct that can be used
+to setup defaults for the Netiron structure
+ */
 type NetironConfig struct {
 	libhost.HostConfig
 	Debug bool
@@ -37,7 +40,7 @@ type netironDevice struct {
 
 /*
 NetironDevice returns a new
-netironDevice object
+netironDevice object, has a init struct of type NetironConfig
 */
 func NetironDevice(Config NetironConfig) *netironDevice {
 
@@ -78,6 +81,9 @@ func NetironDevice(Config NetironConfig) *netironDevice {
 		sshClientConfig: sshClientConfig}
 }
 
+/* LoadPrivateKey
+loads ssh rsa or dsa private keys, is exported for testing
+ */
 func LoadPrivateKey(r io.Reader) (ssh.AuthMethod, error) {
 	buffer, err := ioutil.ReadAll(r)
 	if err != nil {

@@ -1,7 +1,7 @@
 // Copyright 2017 Jörg Kost All rights reserved.
 // joerg.kost@gmx.com, jk@ip-clear.de
 // Use of this source code is governed by Apache 2.0
-// license that can be found in the LICENSE.MD.MD file.
+// license that can be found in the LICENSE.MD file.
 
 package main
 
