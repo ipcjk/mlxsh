@@ -15,7 +15,7 @@ import (
 
 /* NetironConfig is an init struct that can be used
 to setup defaults for the Netiron structure
- */
+*/
 type NetironConfig struct {
 	libhost.HostConfig
 	Debug bool
@@ -83,7 +83,7 @@ func NetironDevice(Config NetironConfig) *netironDevice {
 
 /* LoadPrivateKey
 loads ssh rsa or dsa private keys, is exported for testing
- */
+*/
 func LoadPrivateKey(r io.Reader) (ssh.AuthMethod, error) {
 	buffer, err := ioutil.ReadAll(r)
 	if err != nil {

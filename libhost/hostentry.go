@@ -84,7 +84,7 @@ func LoadAllFromYAML(r io.Reader) ([]HostConfig, error) {
 
 /* ApplyCliSettings
 overwrites given cli parameters/set defaults
- */
+*/
 
 func (h *HostConfig) ApplyCliSettings(scriptFile, configFile string, writeTimeout time.Duration, readTimeout time.Duration) {
 
