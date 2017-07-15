@@ -59,7 +59,7 @@ func init() {
 	flag.Parse()
 
 	if version {
-		log.Println("mlxsh 0.2b (C) 2017 by Jörg Kost, jk@ip-clear.de")
+		log.Println("mlxsh 0.2c (C) 2017 by Jörg Kost, jk@ip-clear.de")
 		os.Exit(0)
 	}
 

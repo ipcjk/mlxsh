@@ -54,7 +54,6 @@ func NetironDevice(Config NetironConfig) *netironDevice {
 	 */
 	sshClientConfig.HostKeyCallback = ssh.InsecureIgnoreHostKey()
 
-
 	/* Allow authentication with ssh dsa or rsa key */
 	if Config.KeyFile != "" {
 		if file, err := os.Open(Config.KeyFile); err != nil {
