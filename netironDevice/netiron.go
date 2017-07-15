@@ -50,6 +50,10 @@ func NetironDevice(Config NetironConfig) *netironDevice {
 	/* Add some ciphers for old ironware versions (xmr,mlx,turobiron,...)
 	 */
 	sshClientConfig.Ciphers = append(sshClientConfig.Ciphers, "aes128-cbc", "3des-cbc")
+	/* Workaround for HostKeyCheck
+	 */
+	sshClientConfig.HostKeyCallback = ssh.InsecureIgnoreHostKey()
+
 
 	/* Allow authentication with ssh dsa or rsa key */
 	if Config.KeyFile != "" {
