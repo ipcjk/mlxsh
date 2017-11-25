@@ -4,9 +4,9 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/ipcjk/mlxsh/libhost"
+	"github.com/ipcjk/mlxsh/libssh"
 	"golang.org/x/crypto/ssh"
 	"io"
-	"io/ioutil"
 	"os"
 	"regexp"
 	"strings"
@@ -24,11 +24,13 @@ type VdxConfig struct {
 
 type vdxDevice struct {
 	VdxConfig
+	connectionAddr string
 
 	promptModes                       map[string]string
 	promptMode                        string
 	sshConfigPrompt, sshEnabledPrompt string
 
+	sshHostKey         ssh.PublicKey
 	sshClientConfig    *ssh.ClientConfig
 	sshConfigPromptPre string
 	sshConnection      *ssh.Client
@@ -43,31 +45,9 @@ VdxDevice returns a new
 vdxDevice object, has a init struct of type VdxConfig
 */
 func VdxDevice(Config VdxConfig) *vdxDevice {
+	var hostkey ssh.PublicKey
 
-	sshClientConfig := &ssh.ClientConfig{User: Config.Username, Auth: []ssh.AuthMethod{ssh.Password(Config.Password)}}
-	/* Add default ciphers / hmacs */
-	sshClientConfig.SetDefaults()
-	/* Workaround for HostKeyCheck */
-	sshClientConfig.HostKeyCallback = ssh.InsecureIgnoreHostKey()
-
-	/* Allow authentication with ssh dsa or rsa key */
-	if Config.KeyFile != "" {
-		if file, err := os.Open(Config.KeyFile); err != nil {
-			if Config.Debug {
-				fmt.Fprintf(Config.W, "Cant load private key for ssh auth :(%s)\n", err)
-			}
-		} else {
-			if privateKey, err := LoadPrivateKey(file); err != nil && Config.Debug {
-				fmt.Fprintf(Config.W, "Cant load private key for ssh auth :(%s)\n", err)
-			} else {
-				sshClientConfig.Auth = append(sshClientConfig.Auth, privateKey)
-			}
-		}
-	}
-
-	/* Set reasonable
-	defaults
-	*/
+	/* Set reasonable defaults */
 	if Config.SSHPort == 0 {
 		Config.SSHPort = 22
 	}
@@ -76,36 +56,54 @@ func VdxDevice(Config VdxConfig) *vdxDevice {
 		Config.ReadTimeout = time.Second * 5
 	}
 
+	sshClientConfig := &ssh.ClientConfig{User: Config.Username, Auth: []ssh.AuthMethod{ssh.Password(Config.Password)}}
+	/* Add default ciphers / hmacs */
+	sshClientConfig.SetDefaults()
+
+	/* Workaround for HostKeyCheck */
+	if Config.StrictHostCheck {
+		hostkey = libssh.LoadHostKey("/Users/joerg/.ssh/known_hosts", Config.Hostname, Config.SSHIP, Config.SSHPort)
+
+		if hostkey != nil {
+			sshClientConfig.HostKeyCallback = ssh.FixedHostKey(hostkey)
+		} else {
+			fmt.Fprintf(Config.W, "Fatal: Cant load host key for strict ssh host authentication")
+		}
+
+	} else {
+		sshClientConfig.HostKeyCallback = ssh.InsecureIgnoreHostKey()
+	}
+
+	/* Allow authentication with ssh dsa or rsa key */
+	if Config.KeyFile != "" {
+		if file, err := os.Open(Config.KeyFile); err != nil {
+			if Config.Debug {
+				fmt.Fprintf(Config.W, "Cant load private key for ssh auth :(%s)\n", err)
+			}
+		} else {
+			if privateKey, err := libssh.LoadPrivateKey(file); err != nil && Config.Debug {
+				fmt.Fprintf(Config.W, "Cant load private key for ssh auth :(%s)\n", err)
+			} else {
+				sshClientConfig.Auth = append(sshClientConfig.Auth, privateKey)
+			}
+		}
+	}
+
+	/* build connectionAddr */
+	var connectionAddr string
+	if Config.SSHIP != "" {
+		connectionAddr = fmt.Sprintf("%s:%d", Config.SSHIP, Config.SSHPort)
+	} else {
+		connectionAddr = fmt.Sprintf("%s:%d", Config.Hostname, Config.SSHPort)
+	}
+
 	return &vdxDevice{VdxConfig: Config, promptModes: make(map[string]string),
-		sshClientConfig: sshClientConfig}
-}
-
-/* LoadPrivateKey
-loads ssh rsa or dsa private keys, is exported for testing
-*/
-func LoadPrivateKey(r io.Reader) (ssh.AuthMethod, error) {
-	buffer, err := ioutil.ReadAll(r)
-	if err != nil {
-		return nil, err
-	}
-
-	key, err := ssh.ParsePrivateKey(buffer)
-	if err != nil {
-		return nil, err
-	}
-	return ssh.PublicKeys(key), nil
+		sshClientConfig: sshClientConfig, connectionAddr: connectionAddr, sshHostKey: hostkey}
 }
 
 func (b *vdxDevice) ConnectPrivilegedMode() (err error) {
-	var addr string
 
-	if b.SSHIP != "" {
-		addr = fmt.Sprintf("%s:%d", b.SSHIP, b.SSHPort)
-	} else {
-		addr = fmt.Sprintf("%s:%d", b.Hostname, b.SSHPort)
-	}
-
-	b.sshConnection, err = ssh.Dial("tcp", addr, b.sshClientConfig)
+	b.sshConnection, err = ssh.Dial("tcp", b.connectionAddr, b.sshClientConfig)
 	if err != nil {
 		return err
 	}
@@ -168,7 +166,7 @@ func (b *vdxDevice) DetectSetPrompt(prompt string) error {
 	}
 
 	b.sshConfigPrompt = strings.Replace(b.sshEnabledPrompt, "#", "(config)#", 1)
-	b.sshConfigPromptPre = strings.Replace(b.sshEnabledPrompt, "#", "(config", 1)
+	b.sshConfigPromptPre = strings.Replace(b.sshEnabledPrompt, "#", "(conf", 1)
 
 	b.promptModes["sshEnabled"] = b.sshEnabledPrompt
 	b.promptModes["sshConfig"] = b.sshConfigPrompt

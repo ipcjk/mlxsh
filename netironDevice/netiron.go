@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/ipcjk/mlxsh/libhost"
+	"github.com/ipcjk/mlxsh/libssh"
 	"golang.org/x/crypto/ssh"
 	"io"
 	"io/ioutil"
@@ -61,7 +62,7 @@ func NetironDevice(Config NetironConfig) *netironDevice {
 				fmt.Fprintf(Config.W, "Cant load private key for ssh auth :(%s)\n", err)
 			}
 		} else {
-			if privateKey, err := LoadPrivateKey(file); err != nil && Config.Debug {
+			if privateKey, err := libssh.LoadPrivateKey(file); err != nil && Config.Debug {
 				fmt.Fprintf(Config.W, "Cant load private key for ssh auth :(%s)\n", err)
 			} else {
 				sshClientConfig.Auth = append(sshClientConfig.Auth, privateKey)
