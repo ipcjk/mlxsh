@@ -168,7 +168,7 @@ func (b *vdxDevice) DetectSetPrompt(prompt string) error {
 	}
 
 	b.sshConfigPrompt = strings.Replace(b.sshEnabledPrompt, "#", "(config)#", 1)
-	b.sshConfigPromptPre = strings.Replace(b.sshEnabledPrompt, "#", "(config", 1)
+	b.sshConfigPromptPre = strings.Replace(b.sshEnabledPrompt, "#", "(conf", 1)
 
 	b.promptModes["sshEnabled"] = b.sshEnabledPrompt
 	b.promptModes["sshConfig"] = b.sshConfigPrompt
