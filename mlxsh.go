@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"github.com/ipcjk/mlxsh/libhost"
 	"github.com/ipcjk/mlxsh/netironDevice"
+	"github.com/ipcjk/mlxsh/vdxDevice"
 	"io"
 	"log"
 	"os"
@@ -24,7 +25,7 @@ var cliHostname, cliPassword, cliUsername, cliEnablePassword string
 var cliSpeedMode bool
 var debug, version, quiet bool
 var cliMaxParallel int
-var cliScriptFile, cliConfigFile, cliRouterFile, cliLabel string
+var cliScriptFile, cliConfigFile, cliRouterFile, cliLabel, cliType string
 var selectedHosts []libhost.HostConfig
 
 type chanHost struct {
@@ -41,6 +42,7 @@ func init() {
 	flag.StringVar(&cliPassword, "password", "", "user password")
 	flag.StringVar(&cliUsername, "username", "", "username")
 	flag.StringVar(&cliEnablePassword, "enable", "", "enable password")
+	flag.StringVar(&cliType, "clitype", "mlxe", "Router type")
 	flag.IntVar(&cliMaxParallel, "c", 2, "concurrent working threads / connections to the routers")
 	flag.DurationVar(&cliReadTimeout, "readtimeout", time.Second*15, "timeout for reading poll on cli select")
 	flag.DurationVar(&cliWriteTimeout, "writetimeout", time.Millisecond*0, "timeout to stall after a write to cli")
@@ -67,7 +69,7 @@ func init() {
 		log.Println("No host/router or selector given, abort...")
 		os.Exit(0)
 	} else if cliHostname != "" && cliLabel != "" {
-		log.Println("Cant run in targetHost-mode and Groupselector")
+		log.Println("Cant run in targetHost-mode or groupselection")
 		os.Exit(0)
 	}
 
@@ -85,7 +87,7 @@ func init() {
 	}
 	/*  Hostname on cli but did not found in list */
 	if cliHostname != "" && len(selectedHosts) == 0 {
-		selectedHosts = append(selectedHosts, libhost.HostConfig{Hostname: cliHostname, Username: cliUsername, Password: cliPassword, EnablePassword: cliEnablePassword, SpeedMode: cliSpeedMode, SSHPort: 22})
+		selectedHosts = append(selectedHosts, libhost.HostConfig{Hostname: cliHostname, Username: cliUsername, Password: cliPassword, EnablePassword: cliEnablePassword, DeviceType: cliType, SpeedMode: cliSpeedMode, SSHPort: 22})
 	}
 
 	if len(selectedHosts) == 0 {
@@ -111,9 +113,20 @@ func main() {
 
 			var err error
 			var buffer = new(bytes.Buffer)
+			var router Router
 
-			router := netironDevice.NetironDevice(
-				netironDevice.NetironConfig{HostConfig: selectedHosts[x], Debug: debug, W: buffer})
+			switch strings.ToLower(selectedHosts[x].DeviceType) {
+			case "vdx", "slx":
+				router = Router(vdxDevice.VdxDevice(
+					vdxDevice.VdxConfig{HostConfig: selectedHosts[x], Debug: debug, W: buffer}))
+			case "mlx", "cer", "mlxe", "xmr", "iron", "turobiron", "icx", "fcs":
+				router = Router(netironDevice.NetironDevice(
+					netironDevice.NetironConfig{HostConfig: selectedHosts[x], Debug: debug, W: buffer}))
+			default:
+				/* Default always to Netiron for compatible  */
+				router = Router(netironDevice.NetironDevice(
+					netironDevice.NetironConfig{HostConfig: selectedHosts[x], Debug: debug, W: buffer}))
+			}
 
 			defer func() {
 				if router != nil {

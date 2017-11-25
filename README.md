@@ -5,7 +5,7 @@
 # mlxsh
 
 mlxsh is the missing power command-line that enables you to enter configuration changes to groups of Brocade / Extreme Networks Netiron devices (
-MLX, MLXE, CER, XMR), but also other Ironware style devices like Turboiron,  via Secure Shell (ssh).
+MLX, MLXE, CER, XMR), but also other Ironware style devices like Turboiron, ICX and also SLX/VDX switches  via Secure Shell (ssh).
 
 ## modes
  

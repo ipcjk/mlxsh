@@ -9,6 +9,8 @@
     location: dus
     environment: stage
     type: cer
+    bgp: yes
+    ospf: yes
 - Hostname: rt2
   Username: mucuser
   Password: mucpass
@@ -20,3 +22,5 @@
     location: dus
     environment: stage
     type: cer
+    bgp: yes
+    ospf: yes
