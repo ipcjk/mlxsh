@@ -3,127 +3,57 @@ package vdxDevice
 import (
 	"bufio"
 	"fmt"
-	"github.com/ipcjk/mlxsh/libhost"
-	"github.com/ipcjk/mlxsh/libssh"
+	"github.com/ipcjk/mlxsh/routerDevice"
 	"golang.org/x/crypto/ssh"
 	"io"
-	"os"
 	"regexp"
 	"strings"
 	"time"
 )
 
-/* VdxConfig is an init struct that can be used
-to setup defaults for the VDX structure
-*/
-type VdxConfig struct {
-	libhost.HostConfig
-	Debug bool
-	W     io.Writer
-}
-
 type vdxDevice struct {
-	VdxConfig
-	connectionAddr string
-
-	promptModes                       map[string]string
-	promptMode                        string
-	sshConfigPrompt, sshEnabledPrompt string
-
-	sshHostKey         ssh.PublicKey
-	sshClientConfig    *ssh.ClientConfig
-	sshConfigPromptPre string
-	sshConnection      *ssh.Client
-	sshSession         *ssh.Session
-	sshStdinPipe       io.WriteCloser
-	sshStdoutPipe      io.Reader
-	sshStdErrPipe      io.Reader
+	RTC    router.RunTimeConfig
+	Router router.Router
 }
 
 /*
 VdxDevice returns a new
 vdxDevice object, has a init struct of type VdxConfig
 */
-func VdxDevice(Config VdxConfig) *vdxDevice {
-	var hostkey ssh.PublicKey
+func VdxDevice(Config router.RunTimeConfig) *vdxDevice {
 
-	/* Set reasonable defaults */
-	if Config.SSHPort == 0 {
-		Config.SSHPort = 22
-	}
+	/* Fill our config with defaults for ssh and timesouts */
+	router.GenerateDefaults(&Config)
 
-	if Config.ReadTimeout == 0 {
-		Config.ReadTimeout = time.Second * 5
-	}
-
-	sshClientConfig := &ssh.ClientConfig{User: Config.Username, Auth: []ssh.AuthMethod{ssh.Password(Config.Password)}}
-	/* Add default ciphers / hmacs */
-	sshClientConfig.SetDefaults()
-
-	/* Workaround for HostKeyCheck */
-	if Config.StrictHostCheck {
-		hostkey = libssh.LoadHostKey("/Users/joerg/.ssh/known_hosts", Config.Hostname, Config.SSHIP, Config.SSHPort)
-
-		if hostkey != nil {
-			sshClientConfig.HostKeyCallback = ssh.FixedHostKey(hostkey)
-		} else {
-			fmt.Fprintf(Config.W, "Fatal: Cant load host key for strict ssh host authentication")
-		}
-
-	} else {
-		sshClientConfig.HostKeyCallback = ssh.InsecureIgnoreHostKey()
-	}
-
-	/* Allow authentication with ssh dsa or rsa key */
-	if Config.KeyFile != "" {
-		if file, err := os.Open(Config.KeyFile); err != nil {
-			if Config.Debug {
-				fmt.Fprintf(Config.W, "Cant load private key for ssh auth :(%s)\n", err)
-			}
-		} else {
-			if privateKey, err := libssh.LoadPrivateKey(file); err != nil && Config.Debug {
-				fmt.Fprintf(Config.W, "Cant load private key for ssh auth :(%s)\n", err)
-			} else {
-				sshClientConfig.Auth = append(sshClientConfig.Auth, privateKey)
-			}
-		}
-	}
-
-	/* build connectionAddr */
-	var connectionAddr string
-	if Config.SSHIP != "" {
-		connectionAddr = fmt.Sprintf("%s:%d", Config.SSHIP, Config.SSHPort)
-	} else {
-		connectionAddr = fmt.Sprintf("%s:%d", Config.Hostname, Config.SSHPort)
-	}
-
-	return &vdxDevice{VdxConfig: Config, promptModes: make(map[string]string),
-		sshClientConfig: sshClientConfig, connectionAddr: connectionAddr, sshHostKey: hostkey}
+	return &vdxDevice{
+		RTC: Config,
+		Router: router.Router{
+			PromptModes: make(map[string]string)}}
 }
 
 func (b *vdxDevice) ConnectPrivilegedMode() (err error) {
 
-	b.sshConnection, err = ssh.Dial("tcp", b.connectionAddr, b.sshClientConfig)
+	b.Router.SSHConnection, err = ssh.Dial("tcp", b.RTC.ConnectionAddr, b.RTC.SSHClientConfig)
 	if err != nil {
 		return err
 	}
 
-	b.sshSession, err = b.sshConnection.NewSession()
+	b.Router.SSHSession, err = b.Router.SSHConnection.NewSession()
 	if err != nil {
 		return err
 	}
 
-	b.sshStdoutPipe, err = b.sshSession.StdoutPipe()
+	b.Router.SSHStdoutPipe, err = b.Router.SSHSession.StdoutPipe()
 	if err != nil {
 		return err
 	}
 
-	b.sshStdinPipe, err = b.sshSession.StdinPipe()
+	b.Router.SSHStdinPipe, err = b.Router.SSHSession.StdinPipe()
 	if err != nil {
 		return err
 	}
 
-	b.sshStdErrPipe, err = b.sshSession.StderrPipe()
+	b.Router.SSHStdErrPipe, err = b.Router.SSHSession.StderrPipe()
 	if err != nil {
 		return err
 	}
@@ -135,18 +65,18 @@ func (b *vdxDevice) ConnectPrivilegedMode() (err error) {
 	}
 
 	/* We request a "dumb"-terminal, so we got rid of any control characters and colors */
-	if err := b.sshSession.RequestPty("dumb", 80, 40, modes); err != nil {
+	if err := b.Router.SSHSession.RequestPty("dumb", 80, 40, modes); err != nil {
 		return fmt.Errorf("request for pseudo terminal failed: %s", err)
 	}
 
 	/* Request a shell */
-	err = b.sshSession.Shell()
+	err = b.Router.SSHSession.Shell()
 	if err != nil {
 		return fmt.Errorf("request for shell failed: %s", err)
 	}
 
 	/* VDX always uses `# ` for prompt */
-	prompt, err := b.readTill(b.sshStdoutPipe, []string{"# "})
+	prompt, err := b.readTill(b.Router.SSHStdoutPipe, []string{"# "})
 	if err := b.DetectSetPrompt(prompt); err != nil {
 		return fmt.Errorf("Detect prompt: %s", err)
 	}
@@ -159,26 +89,26 @@ func (b *vdxDevice) DetectSetPrompt(prompt string) error {
 	myPrompt := regexp.MustCompile(`[\d\w-]+# ?$`).FindString(prompt)
 
 	if myPrompt != "" {
-		b.promptMode = "sshEnabled"
-		b.sshEnabledPrompt = strings.TrimSpace(myPrompt)
+		b.Router.PromptMode = "sshEnabled"
+		b.Router.SSHEnabledPrompt = strings.TrimSpace(myPrompt)
 	} else {
 		return fmt.Errorf("Cant run regexp for prompt detection, weird! Found: %s", myPrompt)
 	}
 
-	b.sshConfigPrompt = strings.Replace(b.sshEnabledPrompt, "#", "(config)#", 1)
-	b.sshConfigPromptPre = strings.Replace(b.sshEnabledPrompt, "#", "(conf", 1)
+	b.Router.SSHConfigPrompt = strings.Replace(b.Router.SSHEnabledPrompt, "#", "(config)#", 1)
+	b.Router.SSHConfigPromptPre = strings.Replace(b.Router.SSHEnabledPrompt, "#", "(conf", 1)
 
-	b.promptModes["sshEnabled"] = b.sshEnabledPrompt
-	b.promptModes["sshConfig"] = b.sshConfigPrompt
-	b.promptModes["sshConfigPre"] = b.sshConfigPromptPre
+	b.Router.PromptModes["sshEnabled"] = b.Router.SSHEnabledPrompt
+	b.Router.PromptModes["sshConfig"] = b.Router.SSHConfigPrompt
+	b.Router.PromptModes["sshConfigPre"] = b.Router.SSHConfigPromptPre
 
-	if b.Debug {
-		fmt.Fprintf(b.W, "Enabled:(%s)\n", b.sshEnabledPrompt)
-		fmt.Fprintf(b.W, "Config:(%s)\n", b.sshConfigPrompt)
-		fmt.Fprintf(b.W, "ConfigSection:(%s)\n", b.sshConfigPromptPre)
+	if b.RTC.Debug {
+		fmt.Fprintf(b.RTC.W, "Enabled:(%s)\n", b.Router.SSHEnabledPrompt)
+		fmt.Fprintf(b.RTC.W, "RTC:(%s)\n", b.Router.SSHConfigPrompt)
+		fmt.Fprintf(b.RTC.W, "ConfigSection:(%s)\n", b.Router.SSHConfigPromptPre)
 	}
 
-	if b.sshEnabledPrompt == "" {
+	if b.Router.SSHEnabledPrompt == "" {
 		return fmt.Errorf("Cant detect any prompt")
 	}
 
@@ -187,15 +117,15 @@ func (b *vdxDevice) DetectSetPrompt(prompt string) error {
 }
 
 func (b *vdxDevice) write(command string) error {
-	_, err := b.sshStdinPipe.Write([]byte(command))
+	_, err := b.Router.SSHStdinPipe.Write([]byte(command))
 	if err != nil {
 		return fmt.Errorf("Cant write to the ssh connection %s", err)
 	}
 
-	if b.Debug {
-		fmt.Fprintf(b.W, "Send command: %s", command)
+	if b.RTC.Debug {
+		fmt.Fprintf(b.RTC.W, "Send command: %s", command)
 	}
-	time.Sleep(b.WriteTimeout)
+	time.Sleep(b.RTC.WriteTimeout)
 	return nil
 }
 
@@ -210,13 +140,13 @@ WaitInput:
 		/* Reset the timer, when we received bytes for reading */
 		go func() {
 			select {
-			case <-(time.After(b.ReadTimeout)):
-				if b.Debug {
-					fmt.Fprint(b.W, "Timed out waiting for incoming buffer")
-					fmt.Fprintf(b.W, "Waited for %s %d", search[0], len(search[0]))
+			case <-(time.After(b.RTC.ReadTimeout)):
+				if b.RTC.Debug {
+					fmt.Fprint(b.RTC.W, "Timed out waiting for incoming buffer")
+					fmt.Fprintf(b.RTC.W, "Waited for %s %d", search[0], len(search[0]))
 				}
-				b.sshSession.Close()
-				b.sshConnection.Close()
+				b.Router.SSHSession.Close()
+				b.Router.SSHConnection.Close()
 			case <-foundToken:
 				return
 			}
@@ -247,13 +177,13 @@ func (b *vdxDevice) ConfigureTerminalMode() error {
 		return err
 	}
 
-	_, err := b.readTill(b.sshStdoutPipe, []string{"(config)#"})
+	_, err := b.readTill(b.Router.SSHStdoutPipe, []string{"(config)#"})
 	if err != nil {
 		return fmt.Errorf("Cant find configure prompt: %s", err)
 	}
 
-	if b.Debug {
-		fmt.Fprint(b.W, "Configuration mode on")
+	if b.RTC.Debug {
+		fmt.Fprint(b.RTC.W, "Configuration mode on")
 	}
 	return nil
 }
@@ -281,28 +211,28 @@ func (b *vdxDevice) SkipPageDisplayMode() (string, error) {
 	if err := b.write("terminal length 0\r\n"); err != nil {
 		return "", err
 	}
-	return b.readTill(b.sshStdoutPipe, []string{b.sshEnabledPrompt})
+	return b.readTill(b.Router.SSHStdoutPipe, []string{b.Router.SSHEnabledPrompt})
 }
 
 func (b *vdxDevice) readTillEnabledPrompt() (string, error) {
-	return b.readTill(b.sshStdoutPipe, []string{b.sshEnabledPrompt})
+	return b.readTill(b.Router.SSHStdoutPipe, []string{b.Router.SSHEnabledPrompt})
 }
 
 func (b *vdxDevice) readTillConfigPrompt() (string, error) {
-	return b.readTill(b.sshStdoutPipe, []string{b.sshConfigPrompt})
+	return b.readTill(b.Router.SSHStdoutPipe, []string{b.Router.SSHConfigPrompt})
 }
 
 func (b *vdxDevice) readTillConfigPromptSection() (string, error) {
-	return b.readTill(b.sshStdoutPipe, []string{b.sshConfigPromptPre})
+	return b.readTill(b.Router.SSHStdoutPipe, []string{b.Router.SSHConfigPromptPre})
 }
 
 func (b *vdxDevice) SwitchMode(targetMode string) error {
 
-	if b.promptMode == targetMode {
+	if b.Router.PromptMode == targetMode {
 		return nil
 	}
 
-	switch b.promptMode {
+	switch b.Router.PromptMode {
 	case "sshEnabled":
 		if targetMode == "sshConfig" {
 			b.ConfigureTerminalMode()
@@ -334,7 +264,7 @@ func (b *vdxDevice) GetPromptMode() error {
 		return err
 	}
 
-	mode, err := b.readTill(b.sshStdoutPipe, []string{b.sshConfigPrompt, b.sshEnabledPrompt})
+	mode, err := b.readTill(b.Router.SSHStdoutPipe, []string{b.Router.SSHConfigPrompt, b.Router.SSHEnabledPrompt})
 	if err != nil {
 		return fmt.Errorf("Cant find command line mode: %s", err)
 	}
@@ -342,12 +272,12 @@ func (b *vdxDevice) GetPromptMode() error {
 	mode = strings.TrimSpace(mode)
 
 	switch mode {
-	case b.promptModes["sshEnabled"]:
-		b.promptMode = "sshEnabled"
-	case b.promptModes["sshConfig"]:
-		b.promptMode = "sshConfig"
+	case b.Router.PromptModes["sshEnabled"]:
+		b.Router.PromptMode = "sshEnabled"
+	case b.Router.PromptModes["sshConfig"]:
+		b.Router.PromptMode = "sshConfig"
 	default:
-		b.promptMode = "unknown"
+		b.Router.PromptMode = "unknown"
 	}
 
 	return nil
@@ -359,12 +289,12 @@ func (b *vdxDevice) WriteConfiguration() (err error) {
 }
 
 func (b *vdxDevice) CloseConnection() {
-	if b.sshSession != nil {
-		b.sshSession.Close()
+	if b.Router.SSHSession != nil {
+		b.Router.SSHSession.Close()
 	}
 
-	if b.sshConnection != nil {
-		b.sshConnection.Close()
+	if b.Router.SSHConnection != nil {
+		b.Router.SSHConnection.Close()
 	}
 }
 
@@ -381,18 +311,18 @@ func (b *vdxDevice) PasteConfiguration(configuration io.Reader) (err error) {
 		}
 
 		/* Wait till config prompt returns or not ? */
-		if !b.SpeedMode {
+		if !b.RTC.SpeedMode {
 			val, err := b.readTillConfigPromptSection()
 			if err != nil {
 				return err
 			}
-			if b.Debug {
-				fmt.Fprintf(b.W, "Captured %s\n", val)
+			if b.RTC.Debug {
+				fmt.Fprintf(b.RTC.W, "Captured %s\n", val)
 			}
 		}
-		fmt.Fprint(b.W, "+")
+		fmt.Fprint(b.RTC.W, "+")
 	}
-	fmt.Fprint(b.W, "\n")
+	fmt.Fprint(b.RTC.W, "\n")
 
 	return
 }
@@ -412,7 +342,7 @@ func (b *vdxDevice) RunCommands(commands io.Reader) (err error) {
 		if err != nil && err != io.EOF {
 			return err
 		}
-		fmt.Fprintf(b.W, "%s\n", val)
+		fmt.Fprintf(b.RTC.W, "%s\n", val)
 	}
 
 	return err

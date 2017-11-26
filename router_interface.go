@@ -2,7 +2,7 @@ package main
 
 import "io"
 
-type Router interface {
+type RouterInt interface {
 	CloseConnection()
 	ConfigureTerminalMode() error
 	ConnectPrivilegedMode() error
