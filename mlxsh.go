@@ -138,19 +138,11 @@ func main() {
 			}()
 
 			if singleRouter == nil {
-				err = fmt.Errorf("Cant instance object")
+				err = fmt.Errorf("Cant instance router object")
 				return
 			}
 
 			if err = singleRouter.ConnectPrivilegedMode(); err != nil {
-				return
-			}
-
-			if _, err = singleRouter.SkipPageDisplayMode(); err != nil {
-				return
-			}
-
-			if err = singleRouter.GetPromptMode(); err != nil {
 				return
 			}
 

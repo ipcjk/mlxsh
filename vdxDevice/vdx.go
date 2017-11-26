@@ -81,6 +81,14 @@ func (b *vdxDevice) ConnectPrivilegedMode() (err error) {
 		return fmt.Errorf("Detect prompt: %s", err)
 	}
 
+	if _, err = b.skipPageDisplayMode(); err != nil {
+		return err
+	}
+
+	if err = b.getPromptMode(); err != nil {
+		return
+	}
+
 	return
 }
 
@@ -203,7 +211,7 @@ func (b *vdxDevice) ExecPrivilegedMode(command string) error {
 	return nil
 }
 
-func (b *vdxDevice) SkipPageDisplayMode() (string, error) {
+func (b *vdxDevice) skipPageDisplayMode() (string, error) {
 	if err := b.SwitchMode("sshEnabled"); err != nil {
 		return "", fmt.Errorf("Cant switch to enabled mode to execute terminal-length: %s", err)
 	}
@@ -258,7 +266,7 @@ func (b *vdxDevice) SwitchMode(targetMode string) error {
 	return nil
 }
 
-func (b *vdxDevice) GetPromptMode() error {
+func (b *vdxDevice) getPromptMode() error {
 
 	if err := b.write("\n"); err != nil {
 		return err

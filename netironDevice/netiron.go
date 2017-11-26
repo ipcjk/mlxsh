@@ -75,6 +75,15 @@ func (b *netironDevice) ConnectPrivilegedMode() (err error) {
 	if b.Router.PromptMode == "sshNonEnabled" && !b.loginDialog() {
 		return fmt.Errorf("Cant login")
 	}
+
+	if _, err = b.skipPageDisplayMode(); err != nil {
+		return err
+	}
+
+	if err = b.getPromptMode(); err != nil {
+		return
+	}
+
 	return
 }
 
@@ -232,7 +241,7 @@ func (b *netironDevice) ExecPrivilegedMode(command string) error {
 	return nil
 }
 
-func (b *netironDevice) SkipPageDisplayMode() (string, error) {
+func (b *netironDevice) skipPageDisplayMode() (string, error) {
 	if err := b.SwitchMode("sshEnabled"); err != nil {
 		return "", fmt.Errorf("Cant switch to enabled mode to execute skip-page-display: %s", err)
 	}
@@ -293,7 +302,7 @@ func (b *netironDevice) SwitchMode(targetMode string) error {
 	return nil
 }
 
-func (b *netironDevice) GetPromptMode() error {
+func (b *netironDevice) getPromptMode() error {
 
 	if err := b.write("\n"); err != nil {
 		return err
