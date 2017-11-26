@@ -27,6 +27,9 @@ func LoadPrivateKey(r io.Reader) (ssh.AuthMethod, error) {
 	return ssh.PublicKeys(key), nil
 }
 
+/* LoadHostKey
+searches an openssh knownhosts-file for a specifc hostname or ip record
+*/
 func LoadHostKey(fileName, hostname, ip string, port int) (hostKey ssh.PublicKey) {
 	file, err := os.Open(fileName)
 	if err != nil {
