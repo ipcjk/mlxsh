@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"github.com/ipcjk/mlxsh/libhost"
 	"github.com/ipcjk/mlxsh/netironDevice"
+	"github.com/ipcjk/mlxsh/routerDevice"
 	"github.com/ipcjk/mlxsh/vdxDevice"
 	"io"
 	"log"
@@ -113,44 +114,35 @@ func main() {
 
 			var err error
 			var buffer = new(bytes.Buffer)
-			var router Router
+			var singleRouter RouterInt
 
 			switch strings.ToLower(selectedHosts[x].DeviceType) {
 			case "vdx", "slx":
-				router = Router(vdxDevice.VdxDevice(
-					vdxDevice.VdxConfig{HostConfig: selectedHosts[x], Debug: debug, W: buffer}))
+				singleRouter = RouterInt(vdxDevice.VdxDevice(router.RunTimeConfig{HostConfig: selectedHosts[x], Debug: debug, W: buffer}))
 			case "mlx", "cer", "mlxe", "xmr", "iron", "turobiron", "icx", "fcs":
-				router = Router(netironDevice.NetironDevice(
-					netironDevice.NetironConfig{HostConfig: selectedHosts[x], Debug: debug, W: buffer}))
+				singleRouter = RouterInt(netironDevice.NetironDevice(
+					router.RunTimeConfig{HostConfig: selectedHosts[x], Debug: debug, W: buffer}))
 			default:
 				/* Default always to Netiron for compatible  */
-				router = Router(netironDevice.NetironDevice(
-					netironDevice.NetironConfig{HostConfig: selectedHosts[x], Debug: debug, W: buffer}))
+				singleRouter = RouterInt(netironDevice.NetironDevice(
+					router.RunTimeConfig{HostConfig: selectedHosts[x], Debug: debug, W: buffer}))
 			}
 
 			defer func() {
-				if router != nil {
-					router.CloseConnection()
+				if singleRouter != nil {
+					singleRouter.CloseConnection()
 				}
 				hostChannel <- chanHost{message: buffer.String(), hostName: selectedHosts[x].Hostname, err: err}
 				wg.Done()
 				<-semaphore
 			}()
 
-			if router == nil {
-				err = fmt.Errorf("Cant instance object")
+			if singleRouter == nil {
+				err = fmt.Errorf("Cant instance router object")
 				return
 			}
 
-			if err = router.ConnectPrivilegedMode(); err != nil {
-				return
-			}
-
-			if _, err = router.SkipPageDisplayMode(); err != nil {
-				return
-			}
-
-			if err = router.GetPromptMode(); err != nil {
+			if err = singleRouter.ConnectPrivilegedMode(); err != nil {
 				return
 			}
 
@@ -173,19 +165,19 @@ func main() {
 
 				/* Execution Mode starts here */
 				if selectedHosts[x].ExecMode {
-					if err := router.RunCommands(input); err != nil {
+					if err := singleRouter.RunCommands(input); err != nil {
 						return
 					}
 				} else {
 
 					/* Configuration Mode starts here */
-					if err = router.ConfigureTerminalMode(); err != nil {
+					if err = singleRouter.ConfigureTerminalMode(); err != nil {
 						return
 					}
-					if err := router.PasteConfiguration(input); err != nil {
+					if err := singleRouter.PasteConfiguration(input); err != nil {
 						return
 					}
-					if err := router.WriteConfiguration(); err != nil {
+					if err := singleRouter.WriteConfiguration(); err != nil {
 						return
 					}
 
