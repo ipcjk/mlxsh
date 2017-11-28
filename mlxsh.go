@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
+	"github.com/ipcjk/mlxsh/junosDevice"
 	"github.com/ipcjk/mlxsh/libhost"
 	"github.com/ipcjk/mlxsh/netironDevice"
 	"github.com/ipcjk/mlxsh/routerDevice"
@@ -24,7 +25,7 @@ import (
 var cliWriteTimeout, cliReadTimeout time.Duration
 var cliHostname, cliPassword, cliUsername, cliEnablePassword string
 var cliSpeedMode bool
-var debug, version, quiet bool
+var debug, version, quiet, prefixHostname bool
 var cliMaxParallel int
 var cliScriptFile, cliConfigFile, cliRouterFile, cliLabel, cliType string
 var selectedHosts []libhost.HostConfig
@@ -51,6 +52,7 @@ func init() {
 	flag.BoolVar(&cliSpeedMode, "speedmode", false, "Enable speed mode write, will ignore any output from the cli while writing")
 	flag.BoolVar(&quiet, "q", false, "quiet mode, no output except error on connecting & co")
 	flag.BoolVar(&version, "version", false, "prints version and exit")
+	flag.BoolVar(&prefixHostname, "ph", false, "prefix every output line with the hostname")
 
 	if os.Getenv("JK") == "1" {
 		log.Println("Developer configuration active")
@@ -122,6 +124,8 @@ func main() {
 			case "mlx", "cer", "mlxe", "xmr", "iron", "turobiron", "icx", "fcs":
 				singleRouter = RouterInt(netironDevice.NetironDevice(
 					router.RunTimeConfig{HostConfig: selectedHosts[x], Debug: debug, W: buffer}))
+			case "juniper", "junos", "mx", "ex", "j":
+				singleRouter = RouterInt(junosDevice.JunosDevice(router.RunTimeConfig{HostConfig: selectedHosts[x], Debug: debug, W: buffer}))
 			default:
 				/* Default always to Netiron for compatible  */
 				singleRouter = RouterInt(netironDevice.NetironDevice(
