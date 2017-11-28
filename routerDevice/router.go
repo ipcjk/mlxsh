@@ -35,6 +35,7 @@ type Router struct {
 	SSHStdinPipe       io.WriteCloser
 	SSHStdoutPipe      io.Reader
 	SSHStdErrPipe      io.Reader
+	ReadMsg            string
 }
 
 /* Set default values for a Configuration */

@@ -41,19 +41,18 @@ func TestJunOSConstructor(t *testing.T) {
 
 func TestSSHConnect(t *testing.T) {
 	var Config = libhost.HostConfig{
-		DeviceType:     "JUNOS",
-		Hostname:       "localhost",
-		Username:       "joergkost",
-		Password:       "gjh48zgu34we",
-		EnablePassword: "gjh48zgu34we",
-		SSHPort:        9132,
+		DeviceType: "JUNOS",
+		Hostname:   "localhost",
+		Username:   "joerg",
+		Password:   "gjh48zgu34we",
+		SSHPort:    22,
 	}
 
 	singleRouter := junosDevice.JunosDevice(
 		router.RunTimeConfig{HostConfig: Config, Debug: true, W: new(bytes.Buffer)})
 
 	if singleRouter == nil {
-		t.Error("Cant create netiron object")
+		t.Error("Cant create junos object")
 	}
 
 	/* Expect that

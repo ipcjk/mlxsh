@@ -25,8 +25,6 @@ func JunosDevice(Config router.RunTimeConfig) *junosDevice {
 	/* Fill our config with defaults for ssh and timesouts */
 	router.GenerateDefaults(&Config)
 
-	Config.ReadTimeout = time.Second * 5
-
 	return &junosDevice{
 		RTC: Config,
 		Router: router.Router{
@@ -66,7 +64,7 @@ func (b *junosDevice) ConnectPrivilegedMode() (err error) {
 		return fmt.Errorf("request for shell failed: %s", err)
 	}
 
-	/* Junus  uses `> ` for prompt */
+	/* JunOS  uses `> ` for prompt */
 	prompt, err := b.readTill(b.Router.SSHStdoutPipe, []string{">"})
 	if err := b.DetectSetPrompt(prompt); err != nil {
 		return fmt.Errorf("Detect prompt: %s", err)
@@ -130,7 +128,7 @@ func (b *junosDevice) write(command string) error {
 
 func (b *junosDevice) readTill(r io.Reader, search []string) (string, error) {
 	var lineBuf string
-	shortBuf := make([]byte, 256)
+	shortBuf := make([]byte, 512)
 	foundToken := make(chan struct{}, 0)
 	defer close(foundToken)
 
@@ -210,6 +208,11 @@ func (b *junosDevice) skipPageDisplayMode() (string, error) {
 	if err := b.write("set cli screen-length 0\n"); err != nil {
 		return "", err
 	}
+
+	if err := b.write("set cli screen-width 1024\n"); err != nil {
+		return "", err
+	}
+
 	return b.readTill(b.Router.SSHStdoutPipe, []string{b.Router.SSHEnabledPrompt})
 }
 
@@ -234,9 +237,7 @@ func (b *junosDevice) SwitchMode(targetMode string) error {
 	switch b.Router.PromptMode {
 	case "sshEnabled":
 		if targetMode == "sshConfig" {
-			b.ConfigureTerminalMode()
-		} else {
-			if err := b.write("exit\n"); err != nil {
+			if err := b.ConfigureTerminalMode(); err != nil {
 				return err
 			}
 		}
@@ -247,6 +248,8 @@ func (b *junosDevice) SwitchMode(targetMode string) error {
 			}
 		}
 	}
+	b.Router.PromptMode = targetMode
+
 	return nil
 }
 
@@ -292,7 +295,6 @@ func (b *junosDevice) rollback() (err error) {
 }
 
 func (b *junosDevice) WriteConfiguration() (err error) {
-
 	/* Juniper needs a commit  */
 	if err = b.SwitchMode("sshConfig"); err != nil {
 		return err
@@ -300,16 +302,6 @@ func (b *junosDevice) WriteConfiguration() (err error) {
 
 	if err := b.write("commit\n"); err != nil {
 		return err
-	}
-
-	_, err = b.readTill(b.Router.SSHStdoutPipe, []string{"configuration check succeeds"})
-	if err != nil {
-		/* Try to roll back */
-		if b.rollback() != nil {
-			return fmt.Errorf("Configuration check failed, rollback failed also %s", err)
-		} else {
-			return fmt.Errorf("Configuration check failed, rollback success %s", err)
-		}
 	}
 
 	_, err = b.readTill(b.Router.SSHStdoutPipe, []string{"commit complete"})

@@ -341,7 +341,7 @@ func (b *netironDevice) WriteConfiguration() (err error) {
 
 	_, err = b.readTill([]string{"(config)#", "Write startup-config done."})
 	if err != nil {
-		return err
+		return fmt.Errorf("Cant write memory flash: %s", err)
 	}
 
 	if b.RTC.Debug {

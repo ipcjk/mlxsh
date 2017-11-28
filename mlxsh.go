@@ -46,7 +46,7 @@ func init() {
 	flag.StringVar(&cliEnablePassword, "enable", "", "enable password")
 	flag.StringVar(&cliType, "clitype", "mlxe", "Router type")
 	flag.IntVar(&cliMaxParallel, "c", 2, "concurrent working threads / connections to the routers")
-	flag.DurationVar(&cliReadTimeout, "readtimeout", time.Second*15, "timeout for reading poll on cli select")
+	flag.DurationVar(&cliReadTimeout, "readtimeout", time.Second*30, "timeout for reading poll on cli select")
 	flag.DurationVar(&cliWriteTimeout, "writetimeout", time.Millisecond*0, "timeout to stall after a write to cli")
 	flag.BoolVar(&debug, "debug", false, "Enable debug for read / write")
 	flag.BoolVar(&cliSpeedMode, "speedmode", false, "Enable speed mode write, will ignore any output from the cli while writing")

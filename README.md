@@ -5,7 +5,10 @@
 # mlxsh
 
 mlxsh is the missing power command-line that enables you to enter configuration changes to groups of Brocade / Extreme Networks Netiron devices (
-MLX, MLXE, CER, XMR), but also other Ironware style devices like Turboiron, ICX and also SLX/VDX switches  via Secure Shell (ssh).
+MLX, MLXE, CER, XMR), other Ironware style devices like Turboiron, ICX and also SLX/VDX switches and new (since 0.3) also for Juniper switches.
+
+## Junos Support
+In version 0.3 I have added basic JunOS support. To use your device as Juniper-router you need to add "DeviceType: juniper" to your YAML-configuration file. 
 
 ## modes
  
@@ -72,8 +75,6 @@ on a group of routers by calling user-defined labels or connect to a single rout
   Labels:
     location: dus
     environment: stage
-    type: cer
-
    ```
 
 Now from the command line it is only necessary to specify a hostname for the connection to your favourite router. If there is no script set (ScriptFile) for configuration or executable mode set,
