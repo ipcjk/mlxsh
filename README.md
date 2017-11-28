@@ -187,10 +187,10 @@ docker run -ti joerg/mlxsh /bin/sh
  ### full list of possible host parameters in YAML
  
  - ConfigFile: File with configuration statements
- - DeviceType: Type of Device, e.g. MLX
+ - DeviceType: Type of Device, possible: MLX,CER,MLXE,XMR,IRON,TurboIron,ICX,FCS,SLX,VDX,MX,EX 
  - EnablePassword: Password that may be needed for privileged mode
  - ExecMode (internal): True or false, if its necessary to execute commands or configure
- - FileName (inernal): Filename with config or command statements
+ - FileName (internal): Filename with config or command statements
  - HostName: Hostname to connect to
  - KeyFile: SSH private key that is needed for auth
  - Password: SSH password for the initial connection
@@ -199,7 +199,7 @@ docker run -ti joerg/mlxsh /bin/sh
  - SpeedMode: true or false: wait for prompt to return after execution
  - SSHIP: IP to connect to, will overwrite Hostname if set
  - SSHPort: SSH Port to connect to, default is 22
- - StrictHostCheck (not implemented yet)
+ - StrictHostCheck: yes/no or true/false, on true/yes we will scan the users known_hosts_file 
  - Username: User for the initial ssh connection
  - WriteTimeout: time to wait after a command statement, tune for slow devices 
  
