@@ -1,14 +1,11 @@
 package netironDevice
 
 import (
-	"bufio"
 	"fmt"
 	"github.com/ipcjk/mlxsh/routerDevice"
-	"golang.org/x/crypto/ssh"
 	"io"
 	"regexp"
 	"strings"
-	"time"
 )
 
 type netironDevice struct {
@@ -21,48 +18,24 @@ NetironDevice returns a new
 netironDevice object, has a init struct of type NetironConfig
 */
 func NetironDevice(Config router.RunTimeConfig) *netironDevice {
+	var configureErrors = `(?i)(Please first configure|invalid command|Invalid input|Warning|skipped due|Error)`
 
-	/* Fill our config with defaults for ssh and timesouts */
 	router.GenerateDefaults(&Config)
 
 	return &netironDevice{
 		RTC: Config,
 		Router: router.Router{
-			PromptModes: make(map[string]string)}}
+			PromptReadTriggers: []string{">", "#"},
+			PromptModes:        make(map[string]string),
+			ErrorMatches:       regexp.MustCompile(configureErrors)}}
 }
-func (b *netironDevice) ConnectPrivilegedMode() (err error) {
+func (b *netironDevice) Connect() (err error) {
 
-	b.Router.SSHConnection, err = ssh.Dial("tcp", b.RTC.ConnectionAddr, b.RTC.SSHClientConfig)
-	if err != nil {
+	if err = b.Router.SetupSSH(b.RTC.ConnectionAddr, b.RTC.SSHClientConfig, false); err != nil {
 		return err
 	}
 
-	b.Router.SSHSession, err = b.Router.SSHConnection.NewSession()
-	if err != nil {
-		return err
-	}
-
-	b.Router.SSHStdoutPipe, err = b.Router.SSHSession.StdoutPipe()
-	if err != nil {
-		return err
-	}
-
-	b.Router.SSHStdinPipe, err = b.Router.SSHSession.StdinPipe()
-	if err != nil {
-		return err
-	}
-
-	b.Router.SSHStdErrPipe, err = b.Router.SSHSession.StderrPipe()
-	if err != nil {
-		return err
-	}
-
-	err = b.Router.SSHSession.Shell()
-	if err != nil {
-		return err
-	}
-
-	prompt, err := b.readTill([]string{">", "#"})
+	prompt, err := b.Router.ReadTill(b.RTC, b.Router.PromptReadTriggers)
 	if err != nil {
 		return err
 	}
@@ -132,16 +105,16 @@ func (b *netironDevice) DetectSetPrompt(prompt string) error {
 }
 
 func (b *netironDevice) loginDialog() bool {
-	if err := b.write("enable\n"); err != nil {
+	if err := b.Router.Write(b.RTC, "enable\n"); err != nil {
 		return false
 	}
 
-	_, err := b.readTill([]string{"Password:"})
+	_, err := b.Router.ReadTill(b.RTC, []string{"Password:"})
 	if err != nil {
 		return false
 	}
 
-	if err := b.write(b.RTC.EnablePassword + "\n"); err != nil {
+	if err := b.Router.Write(b.RTC, b.RTC.EnablePassword+"\n"); err != nil {
 		return false
 	}
 
@@ -155,67 +128,12 @@ func (b *netironDevice) loginDialog() bool {
 	return true
 }
 
-func (b *netironDevice) write(command string) error {
-	_, err := b.Router.SSHStdinPipe.Write([]byte(command))
-	if err != nil {
-		return fmt.Errorf("Cant write to the ssh connection %s", err)
-	}
-
-	if b.RTC.Debug {
-		fmt.Fprintf(b.RTC.W, "Send command: %s", command)
-	}
-	time.Sleep(b.RTC.WriteTimeout)
-	return nil
-}
-
-func (b *netironDevice) readTill(search []string) (string, error) {
-	var lineBuf string
-	shortBuf := make([]byte, 256)
-	foundToken := make(chan struct{}, 0)
-	defer close(foundToken)
-
-WaitInput:
-	for {
-		/* Reset the timer, when we received bytes for reading */
-		go func() {
-			select {
-			case <-(time.After(b.RTC.ReadTimeout)):
-				if b.RTC.Debug {
-					fmt.Fprint(b.RTC.W, "Timed out waiting for incoming buffer")
-				}
-				b.Router.SSHSession.Close()
-				b.Router.SSHConnection.Close()
-			case <-foundToken:
-				return
-			}
-		}()
-		var err error
-		var n int
-		if n, err = io.ReadAtLeast(b.Router.SSHStdoutPipe, shortBuf, 1); err != nil {
-			/* FIXME, do something on EOF (could still contain our search buffer) */
-			if err != io.EOF {
-				return "", err
-			} else if err == io.EOF {
-				return "", err
-			}
-		}
-		foundToken <- struct{}{}
-		lineBuf += string(shortBuf[:n])
-		for x := range search {
-			if strings.Contains(lineBuf, search[x]) {
-				break WaitInput
-			}
-		}
-	}
-	return string(lineBuf), nil
-}
-
 func (b *netironDevice) ConfigureTerminalMode() error {
-	if err := b.write("conf t\n"); err != nil {
+	if err := b.Router.Write(b.RTC, "conf t\n"); err != nil {
 		return err
 	}
 
-	_, err := b.readTill([]string{"(config)#"})
+	_, err := b.Router.ReadTill(b.RTC, []string{"(config)#"})
 	if err != nil {
 		return fmt.Errorf("Cant find configure prompt: %s", err)
 	}
@@ -226,42 +144,27 @@ func (b *netironDevice) ConfigureTerminalMode() error {
 	return nil
 }
 
-func (b *netironDevice) ExecPrivilegedMode(command string) error {
-	if err := b.SwitchMode("sshEnabled"); err != nil {
-		return fmt.Errorf("Cant switch to privileged mode: %s", err)
-	}
-
-	if err := b.write(command + "\n"); err != nil {
-		return err
-	}
-	_, err := b.readTillEnabledPrompt()
-	if err != nil {
-		return fmt.Errorf("Cant find  privileged mode: %s", err)
-	}
-	return nil
-}
-
 func (b *netironDevice) skipPageDisplayMode() (string, error) {
 	if err := b.SwitchMode("sshEnabled"); err != nil {
 		return "", fmt.Errorf("Cant switch to enabled mode to execute skip-page-display: %s", err)
 	}
 
-	if err := b.write("skip-page-display\n"); err != nil {
+	if err := b.Router.Write(b.RTC, "skip-page-display\n"); err != nil {
 		return "", err
 	}
-	return b.readTill([]string{b.Router.SSHEnabledPrompt})
+	return b.Router.ReadTill(b.RTC, []string{b.Router.SSHEnabledPrompt})
 }
 
 func (b *netironDevice) readTillEnabledPrompt() (string, error) {
-	return b.readTill([]string{b.Router.SSHEnabledPrompt})
+	return b.Router.ReadTill(b.RTC, []string{b.Router.SSHEnabledPrompt})
 }
 
 func (b *netironDevice) readTillConfigPrompt() (string, error) {
-	return b.readTill([]string{b.Router.SSHConfigPrompt})
+	return b.Router.ReadTill(b.RTC, []string{b.Router.SSHConfigPrompt})
 }
 
 func (b *netironDevice) readTillConfigPromptSection() (string, error) {
-	return b.readTill([]string{b.Router.SSHConfigPromptPre})
+	return b.Router.ReadTill(b.RTC, []string{b.Router.SSHConfigPromptPre})
 }
 
 func (b *netironDevice) SwitchMode(targetMode string) error {
@@ -275,20 +178,20 @@ func (b *netironDevice) SwitchMode(targetMode string) error {
 		if targetMode == "sshConfig" {
 			b.ConfigureTerminalMode()
 		} else {
-			if err := b.write("exit\n"); err != nil {
+			if err := b.Router.Write(b.RTC, "exit\n"); err != nil {
 				return err
 			}
 		}
 	case "sshConfig":
 		if targetMode == "sshEnabled" {
-			if err := b.write("end\n"); err != nil {
+			if err := b.Router.Write(b.RTC, "end\n"); err != nil {
 				return err
 			}
 		} else {
-			if err := b.write("end\n"); err != nil {
+			if err := b.Router.Write(b.RTC, "end\n"); err != nil {
 				return err
 			}
-			if err := b.write("exit\n"); err != nil {
+			if err := b.Router.Write(b.RTC, "exit\n"); err != nil {
 				return err
 			}
 		}
@@ -304,11 +207,11 @@ func (b *netironDevice) SwitchMode(targetMode string) error {
 
 func (b *netironDevice) getPromptMode() error {
 
-	if err := b.write("\n"); err != nil {
+	if err := b.Router.Write(b.RTC, "\n"); err != nil {
 		return err
 	}
 
-	mode, err := b.readTill([]string{b.Router.SSHConfigPrompt, b.Router.SSHEnabledPrompt, b.Router.SSHUnprivilegedPrompt})
+	mode, err := b.Router.ReadTill(b.RTC, []string{b.Router.SSHConfigPrompt, b.Router.SSHEnabledPrompt, b.Router.SSHUnprivilegedPrompt})
 	if err != nil {
 		return fmt.Errorf("Cant find command line mode: %s", err)
 	}
@@ -329,17 +232,17 @@ func (b *netironDevice) getPromptMode() error {
 	return nil
 }
 
-func (b *netironDevice) WriteConfiguration() (err error) {
+func (b *netironDevice) CommitConfiguration() (err error) {
 
 	if err = b.SwitchMode("sshEnabled"); err != nil {
 		return err
 	}
 
-	if err := b.write("write memory\n"); err != nil {
+	if err := b.Router.Write(b.RTC, "write memory\n"); err != nil {
 		return err
 	}
 
-	_, err = b.readTill([]string{"(config)#", "Write startup-config done."})
+	_, err = b.Router.ReadTill(b.RTC, []string{"(config)#", "Write startup-config done."})
 	if err != nil {
 		return fmt.Errorf("Cant write memory flash: %s", err)
 	}
@@ -351,62 +254,22 @@ func (b *netironDevice) WriteConfiguration() (err error) {
 	return
 }
 
-func (b *netironDevice) CloseConnection() {
-	if b.Router.SSHSession != nil {
-		b.Router.SSHSession.Close()
-	}
-
-	if b.Router.SSHConnection != nil {
-		b.Router.SSHConnection.Close()
-	}
-}
-
 func (b *netironDevice) PasteConfiguration(configuration io.Reader) (err error) {
-
 	if err = b.SwitchMode("sshConfig"); err != nil {
 		return err
 	}
 
-	scanner := bufio.NewScanner(configuration)
-	for scanner.Scan() {
-		if err := b.write(scanner.Text() + "\n"); err != nil {
-			return err
-		}
-
-		/* Wait till config prompt returns or not ? */
-		if !b.RTC.SpeedMode {
-			val, err := b.readTillConfigPromptSection()
-			if err != nil {
-				return err
-			}
-			if b.RTC.Debug {
-				fmt.Fprintf(b.RTC.W, "Captured %s\n", val)
-			}
-		}
-		fmt.Fprint(b.RTC.W, "+")
-	}
-	fmt.Fprint(b.RTC.W, "\n")
-
-	return
+	return b.Router.PasteConfiguration(b.RTC, configuration)
 }
 
 func (b *netironDevice) RunCommands(commands io.Reader) (err error) {
-
 	if err = b.SwitchMode("sshEnabled"); err != nil {
 		return fmt.Errorf("Cant switch to privileged mode: %s", err)
 	}
 
-	scanner := bufio.NewScanner(commands)
-	for scanner.Scan() {
-		if err := b.write(scanner.Text() + "\n"); err != nil {
-			return err
-		}
-		val, err := b.readTillEnabledPrompt()
-		if err != nil && err != io.EOF {
-			return err
-		}
-		fmt.Fprintf(b.RTC.W, "%s\n", val)
-	}
+	return b.Router.RunCommands(b.RTC, commands)
+}
 
-	return err
+func (b *netironDevice) Close() {
+	b.Router.Close()
 }

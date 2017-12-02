@@ -3,10 +3,10 @@ package main
 import "io"
 
 type RouterInt interface {
-	CloseConnection()
+	Close()
 	ConfigureTerminalMode() error
-	ConnectPrivilegedMode() error
+	Connect() error
 	PasteConfiguration(io.Reader) error
 	RunCommands(io.Reader) error
-	WriteConfiguration() error
+	CommitConfiguration() error
 }

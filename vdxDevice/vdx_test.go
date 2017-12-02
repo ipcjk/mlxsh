@@ -53,7 +53,7 @@ func TestSSHConnect(t *testing.T) {
 		t.Error("Cant create vdx object")
 	}
 
-	if err := singleRouter.ConnectPrivilegedMode(); err == nil {
+	if err := singleRouter.Connect(); err == nil {
 		t.Error("Logged into localhost with default settings, this cant be true!")
 	}
 

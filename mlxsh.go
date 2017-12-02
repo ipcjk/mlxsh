@@ -9,25 +9,26 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
-	"github.com/ipcjk/mlxsh/junosDevice"
-	"github.com/ipcjk/mlxsh/libhost"
-	"github.com/ipcjk/mlxsh/netironDevice"
-	"github.com/ipcjk/mlxsh/routerDevice"
-	"github.com/ipcjk/mlxsh/vdxDevice"
 	"io"
 	"log"
 	"os"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/ipcjk/mlxsh/junosDevice"
+	"github.com/ipcjk/mlxsh/libhost"
+	"github.com/ipcjk/mlxsh/netironDevice"
+	"github.com/ipcjk/mlxsh/routerDevice"
+	"github.com/ipcjk/mlxsh/vdxDevice"
 )
 
 var cliWriteTimeout, cliReadTimeout time.Duration
 var cliHostname, cliPassword, cliUsername, cliEnablePassword string
 var cliSpeedMode bool
-var debug, version, quiet, prefixHostname bool
+var debug, version, quiet, prefixHostname, cliHostCheck bool
 var cliMaxParallel int
-var cliScriptFile, cliConfigFile, cliRouterFile, cliLabel, cliType string
+var cliScriptFile, cliConfigFile, cliRouterFile, cliLabel, cliType, cliKeyFile, cliHostFile string
 var selectedHosts []libhost.HostConfig
 
 type chanHost struct {
@@ -45,10 +46,13 @@ func init() {
 	flag.StringVar(&cliUsername, "username", "", "username")
 	flag.StringVar(&cliEnablePassword, "enable", "", "enable password")
 	flag.StringVar(&cliType, "clitype", "mlxe", "Router type")
-	flag.IntVar(&cliMaxParallel, "c", 2, "concurrent working threads / connections to the routers")
+	flag.IntVar(&cliMaxParallel, "c", 20, "concurrent working threads")
 	flag.DurationVar(&cliReadTimeout, "readtimeout", time.Second*30, "timeout for reading poll on cli select")
 	flag.DurationVar(&cliWriteTimeout, "writetimeout", time.Millisecond*0, "timeout to stall after a write to cli")
 	flag.BoolVar(&debug, "debug", false, "Enable debug for read / write")
+	flag.BoolVar(&cliHostCheck, "strict", false, "Enable strict hostkey checking for ssh connections")
+	flag.StringVar(&cliKeyFile, "i", "", "Path to a ssh private key (in openssh2-format) that will be used for connections ")
+	flag.StringVar(&cliHostFile, "f", "", "Path to the known-hosts-file (in openssh2-format) that will be used for validating hostkeys ")
 	flag.BoolVar(&cliSpeedMode, "speedmode", false, "Enable speed mode write, will ignore any output from the cli while writing")
 	flag.BoolVar(&quiet, "q", false, "quiet mode, no output except error on connecting & co")
 	flag.BoolVar(&version, "version", false, "prints version and exit")
@@ -99,7 +103,7 @@ func init() {
 
 	/* Possible overwrite settings from CliParameters */
 	for x := range selectedHosts {
-		selectedHosts[x].ApplyCliSettings(cliScriptFile, cliConfigFile, cliWriteTimeout, cliReadTimeout)
+		selectedHosts[x].ApplyCliSettings(cliScriptFile, cliConfigFile, cliWriteTimeout, cliReadTimeout, cliHostCheck, cliKeyFile, cliHostFile)
 	}
 }
 
@@ -134,7 +138,7 @@ func main() {
 
 			defer func() {
 				if singleRouter != nil {
-					singleRouter.CloseConnection()
+					singleRouter.Close()
 				}
 				hostChannel <- chanHost{message: buffer.String(), hostName: selectedHosts[x].Hostname, err: err}
 				wg.Done()
@@ -146,13 +150,15 @@ func main() {
 				return
 			}
 
-			if err = singleRouter.ConnectPrivilegedMode(); err != nil {
+			if err = singleRouter.Connect(); err != nil {
 				return
 			}
 
 			if selectedHosts[x].Filename != "" {
 				var input io.Reader
-				file, err := os.Open(selectedHosts[x].Filename)
+				var file *os.File
+
+				file, err = os.Open(selectedHosts[x].Filename)
 				defer file.Close()
 
 				if err != nil && os.IsNotExist(err) {
@@ -169,7 +175,7 @@ func main() {
 
 				/* Execution Mode starts here */
 				if selectedHosts[x].ExecMode {
-					if err := singleRouter.RunCommands(input); err != nil {
+					if err = singleRouter.RunCommands(input); err != nil {
 						return
 					}
 				} else {
@@ -178,10 +184,10 @@ func main() {
 					if err = singleRouter.ConfigureTerminalMode(); err != nil {
 						return
 					}
-					if err := singleRouter.PasteConfiguration(input); err != nil {
+					if err = singleRouter.PasteConfiguration(input); err != nil {
 						return
 					}
-					if err := singleRouter.WriteConfiguration(); err != nil {
+					if err = singleRouter.CommitConfiguration(); err != nil {
 						return
 					}
 
@@ -198,20 +204,23 @@ func main() {
 
 	// printer
 	for elems := range hostChannel {
-		fmt.Printf("╔══════════════════════════════════════════════════════════════════════╗\n")
 		if elems.err != nil {
+			fmt.Printf("╔══════════════════════════════════════════════════════════════════════╗\n")
 			fmt.Printf("║%-70s║\n", elems.hostName)
 			fmt.Printf("║%-70s║\n", "No success:")
+			fmt.Println("╚══════════════════════════════════════════════════════════════════════╝")
 			fmt.Printf("║%-70s║\n", elems.err)
+			fmt.Println("════════════════════════════════════════════════════════════════════════")
 			if elems.message != "" {
 				fmt.Println(elems.message)
 			}
-			fmt.Println("╚══════════════════════════════════════════════════════════════════════╝")
 		} else {
 			if quiet == false {
+				fmt.Printf("╔══════════════════════════════════════════════════════════════════════╗\n")
 				fmt.Printf("║%-70s║\n", elems.hostName)
 				fmt.Println("╚══════════════════════════════════════════════════════════════════════╝")
 				fmt.Println(elems.message)
+				fmt.Println("════════════════════════════════════════════════════════════════════════")
 			}
 		}
 

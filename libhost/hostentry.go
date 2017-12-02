@@ -21,6 +21,7 @@ type HostConfig struct {
 	Filename        string            `yaml:"FileName"`
 	Hostname        string            `yaml:"Hostname"`
 	KeyFile         string            `yaml:"KeyFile"`
+	KnownHosts      string            `yaml:"KnownHosts"`
 	Labels          map[string]string `yaml:"Labels"`
 	Password        string            `yaml:"Password"`
 	ReadTimeout     time.Duration     `yaml:"Readtimeout"`
@@ -86,7 +87,7 @@ func LoadAllFromYAML(r io.Reader) ([]HostConfig, error) {
 overwrites given cli parameters/set defaults
 */
 
-func (h *HostConfig) ApplyCliSettings(scriptFile, configFile string, writeTimeout time.Duration, readTimeout time.Duration) {
+func (h *HostConfig) ApplyCliSettings(scriptFile, configFile string, writeTimeout time.Duration, readTimeout time.Duration, HostCheck bool, KeyFile string, HostFile string) {
 
 	if configFile != "" {
 		h.Filename = configFile
@@ -106,6 +107,18 @@ func (h *HostConfig) ApplyCliSettings(scriptFile, configFile string, writeTimeou
 
 	if readTimeout != 0 {
 		h.ReadTimeout = readTimeout
+	}
+
+	if HostCheck {
+		h.StrictHostCheck = true
+	}
+
+	if KeyFile != "" {
+		h.KeyFile = KeyFile
+	}
+
+	if HostFile != "" {
+		h.KnownHosts = HostFile
 	}
 
 }

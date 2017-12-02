@@ -22,7 +22,7 @@ func TestJunOSConstructor(t *testing.T) {
 		router.RunTimeConfig{HostConfig: Config, Debug: true, W: new(bytes.Buffer)})
 
 	if singleRouter == nil {
-		t.Error("Cant create netiron object")
+		t.Error("Cant create junos object")
 	}
 
 	if singleRouter.RTC.SSHPort != 22 {
@@ -58,7 +58,7 @@ func TestSSHConnect(t *testing.T) {
 	/* Expect that
 	sshClients fail
 	*/
-	if err := singleRouter.ConnectPrivilegedMode(); err == nil {
+	if err := singleRouter.Connect(); err == nil {
 		t.Error("Logged into localhost with default settings, this cant be true!")
 	}
 
