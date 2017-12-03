@@ -14,6 +14,36 @@ func TestLoadingSSHKey(t *testing.T) {
 	}
 }
 
+func TestSearchHostKey(t *testing.T) {
+	var sampleHostKey = `192.168.1.76 ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAvVgFjl9iLW8g8To6GCb2EhGBhtLWnPU34yJWDEziAkH6MHcOpCM/ZTHL8lOmawC1m+YfptFa5IzWtY57/EAusuUeFzT1btISVxNDSWE88HMCv4G0NT9euDtcTWThK7chxK8R1VzRMLYc3QmpxkTxFg9r+ZCMzf77SQw211y0wesu4mJ784yU025jpgmRRstUvX9AJaTo++StKbzCbakC2FjkRadWfkfnXe7KHbdi/RpY5z/4aESA41sqkHgxYS6ja1UNvP7xaSYY0lCrp5McSj3AkKCBqgqiqJPBZLgZ+B5RoBVhGS6yJ1/LRPVGJJKNcrTFuwPhC8AwacxvJpwasQ==
+|1|APfqp9OCXJ3NWEk6I/TKaqpHmr4=|gJC4q5LAv84V0UeHFN0SomiRuxY= ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBOY+0mKz+wOcJhE+322JTnRLBNdxWrHJMRf/S+eckJTEYTsTMEil9aBXdfiA4kSxE1rcvmWwRChcFyeNMwtSCAI=`
+
+	hostKey := libssh.SearchHostKey(strings.NewReader(sampleHostKey), "so-call-me-maybe", "", 22)
+
+	if hostKey == nil {
+		t.Error("Hashed SSH-Key not found")
+	}
+
+	hostKey = libssh.SearchHostKey(strings.NewReader(sampleHostKey), "", "192.168.1.76", 22)
+
+	if hostKey == nil {
+		t.Errorf("Hostkey %s not found", "192.168.1.76")
+	}
+
+	hostKey = libssh.SearchHostKey(strings.NewReader(sampleHostKey), "so-call-somebody-else", "192.168.1.76", 22)
+
+	if hostKey == nil {
+		t.Errorf("Hostkey %s not found", "192.168.1.76")
+	}
+
+	hostKey = libssh.SearchHostKey(strings.NewReader(sampleHostKey), "so-call-anyone", "172.168.1.76", 2122)
+
+	if hostKey != nil {
+		t.Error("Found unknown Hostkey")
+	}
+
+}
+
 var sampleSSHKey = `-----BEGIN RSA PRIVATE KEY-----
 MIIEpAIBAAKCAQEA3h5u/Jb0TKlwLAwOgaVeHevwMdCqwf2mJRvVMheNOeu2qSEk
 18Rf3YS3URkUvZhdQmd/fafJYALamcxl1nO9IVEUvWXBIn3pjKR5Yf6rl4bl8V7n

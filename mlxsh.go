@@ -50,13 +50,12 @@ func init() {
 	flag.DurationVar(&cliReadTimeout, "readtimeout", time.Second*30, "timeout for reading poll on cli select")
 	flag.DurationVar(&cliWriteTimeout, "writetimeout", time.Millisecond*0, "timeout to stall after a write to cli")
 	flag.BoolVar(&debug, "debug", false, "Enable debug for read / write")
-	flag.BoolVar(&cliHostCheck, "strict", false, "Enable strict hostkey checking for ssh connections")
+	flag.BoolVar(&cliHostCheck, "s", false, "Enable strict hostkey checking for ssh connections")
 	flag.StringVar(&cliKeyFile, "i", "", "Path to a ssh private key (in openssh2-format) that will be used for connections ")
-	flag.StringVar(&cliHostFile, "f", "", "Path to the known-hosts-file (in openssh2-format) that will be used for validating hostkeys ")
+	flag.StringVar(&cliHostFile, "sf", "", "Path to the known-hosts-file (in openssh2-format) that will be used for validating hostkeys ")
 	flag.BoolVar(&cliSpeedMode, "speedmode", false, "Enable speed mode write, will ignore any output from the cli while writing")
 	flag.BoolVar(&quiet, "q", false, "quiet mode, no output except error on connecting & co")
 	flag.BoolVar(&version, "version", false, "prints version and exit")
-	flag.BoolVar(&prefixHostname, "ph", false, "prefix every output line with the hostname")
 
 	if os.Getenv("JK") == "1" {
 		log.Println("Developer configuration active")

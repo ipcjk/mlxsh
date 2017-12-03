@@ -167,7 +167,13 @@ func GenerateDefaults(config *RunTimeConfig) {
 
 	/* Check if StrictHostKeyCheck is needed */
 	if config.StrictHostCheck {
-		config.Hostkey = libssh.LoadHostKey(config.KnownHosts, config.Hostname, config.SSHIP, config.SSHPort)
+		file, err := os.Open(config.KnownHosts)
+		if err != nil {
+			fmt.Fprintf(config.W, "Fatal: Cant open known ssh hosts file for strict ssh host authentication")
+		}
+		defer file.Close()
+
+		config.Hostkey = libssh.SearchHostKey(file, config.Hostname, config.SSHIP, config.SSHPort)
 
 		if config.Hostkey != nil {
 			sshClientConfig.HostKeyCallback = ssh.FixedHostKey(config.Hostkey)

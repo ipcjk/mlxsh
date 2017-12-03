@@ -132,7 +132,7 @@ func TestAppCli(t *testing.T) {
 	}
 
 	for x := range hostsConfig {
-		hostsConfig[x].ApplyCliSettings("script", "config", time.Second*10, time.Second*5)
+		hostsConfig[x].ApplyCliSettings("script", "config", time.Second*10, time.Second*5, false, "", "")
 	}
 
 	for x := range hostsConfig {
