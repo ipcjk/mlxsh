@@ -41,7 +41,7 @@ In version 0.3 I have added basic JunOS support. To use your device as Juniper-r
    ```
 
  
-## cli mode examples
+## cli source examples
 
 For example, if you want to quickly commit the cloudflare.txt ip prefix lists, you can enter the command:
 
@@ -59,8 +59,7 @@ crontab -l
 ```
 
 
-
-## YAML mode examples
+## YAML source examples
 
 Routers can be configured in a YAML file and it is possible to execute commands or configuration settings
 on a group of routers by calling user-defined labels or connect to a single router by setting the hostname parameter.
@@ -123,24 +122,20 @@ Total IPv6 and IPv6 VPN Cache Entry Usage on LPs:
 ```bash
 mlxsh -hostname frankfurt-rt1 -script "show uptime"
 mlxsh -hostname frankfurt-rt1 -username operator -password foo -enable foo -script "show ip bgp sum"
+
 ```
-
 - grep-able output:
-
 ```bash
-
 mlxsh -hostname frankfurt-rt1  -script "show uptime" | grep MP
 ```
 
 - label-based execution and configuration on router-groups. Great for scheduled maintenance within cron, 
 reloading IX-configs at night, reload the router for testing HA, ….
-
 ```bash
 mlxsh -label "location=frankfurt,type=mlx" -script 'show ip cache'
 mlxsh -label "location=munich" -config scripts/bgp_neighbor
 mlxsh -label "mission=DECIX" -routerdb='/home/mlxsh/mlxsh.yaml' -config /home/ixgen/decix
 ```
-
 
 ### docker
 
@@ -156,36 +151,42 @@ docker run -ti joerg/mlxsh /bin/sh
  
  ```bash
  Usage of ./mlxsh:
-   -c int
-     	concurrent working threads / connections to the routers default 2
-   -config string
-     	Configuration file to insert, its used as a direct command
-   -debug
-     	Enable debug for read / write
-   -enable string
-     	enable password
-   -hostname string
-     	Router hostname
-   -label string
-     	label-selection for run commands on a group of routers, e.g. 'location=munich,environment=prod'
-   -password string
-     	user password
-   -readtimeout duration
-     	timeout for reading poll on cli select default 15s
-   -routerdb string
-     	Input file in yaml for username,password and host configuration if not specified on command-line default "mlxsh.yaml"
-   -script string
-     	script file to to execute, if no file is found, its used as a direct command
-   -speedmode
-     	Enable speed mode write, will ignore any output from the cli while writing
-   -username string
-     	username
-   -version
-     	prints version and exit
-   -writetimeout duration
-     	timeout to stall after a write to cli
- exit status 2
- 
+  -c int
+    	concurrent working threads \(default 20\)
+  -clitype string
+    	Router type \(default mlxe\)
+  -config string
+    	Configuration file to insert, its used as a direct command
+  -debug
+    	Enable debug for read / write
+  -enable string
+    	enable password
+  -hostname string
+    	Router hostname
+  -i string
+    	Path to a ssh private key \(in openssh2-format\) that will be used for connections 
+  -label string
+    	label-selection for run commands on a group of routers, e.g. 'location=munich,environment=prod'
+  -password string
+    	user password
+  -q	quiet mode, no output except error on connecting & co
+  -readtimeout duration
+    	timeout for reading poll on cli select \(default 30s\)
+  -routerdb string
+    	Input file in yaml for username,password and host configuration if not specified on command-line \(default "mlxsh.yaml"\)
+  -s	Enable strict hostkey checking for ssh connections
+  -script string
+    	script file to to execute, if no file is found, its used as a direct command
+  -sf string
+    	Path to the known-hosts-file \(in openssh2-format\) that will be used for validating hostkeys, defaults to .ssh/known_hosts 
+  -speedmode
+    	Enable speed mode write, will ignore any output from the cli while writing
+  -username string
+    	username
+  -version
+    	prints version and exit
+  -writetimeout duration
+    	timeout to stall after a write to cli
  ```
  
  ### full list of possible host parameters in YAML

@@ -27,7 +27,7 @@ import (
 var cliWriteTimeout, cliReadTimeout time.Duration
 var cliHostname, cliPassword, cliUsername, cliEnablePassword string
 var cliSpeedMode bool
-var debug, version, quiet, prefixHostname, cliHostCheck bool
+var debug, version, quiet, cliHostCheck bool
 var cliMaxParallel int
 var cliScriptFile, cliConfigFile, cliRouterFile, cliLabel, cliType, cliKeyFile, cliHostFile string
 var selectedHosts []libhost.HostConfig
@@ -68,7 +68,7 @@ func init() {
 	flag.Parse()
 
 	if version {
-		log.Println("mlxsh 0.2c (C) 2017 by Jörg Kost, jk@ip-clear.de")
+		log.Println("mlxsh 0.3 (C) 2017 by Jörg Kost, jk@ip-clear.de")
 		os.Exit(0)
 	}
 
