@@ -2,25 +2,24 @@
   Username: noc
   Password: noc
   EnablePassword: noc
-  DeviceType: CER
-  KeyFile: key
+  DeviceType: MLXE
+  KeyFile: /home/joergkost/.ssh/id_dsa
   SpeedMode: False
   Labels:
     location: dus
     environment: stage
+    os: brocade
     type: cer
     bgp: yes
     ospf: yes
-- Hostname: rt2
-  Username: mucuser
-  Password: mucpass
-  SSHIP: 172.16.31.10
+- Hostname: sw52.example.com
+  Username: joergkost
+  Password: foo
+  DeviceType: juniper
+  KeyFile: /home/joergkost/.ssh/id_dsa
+  StrictHostCheck: no
   SSHPort: 22
-  EnablePassword: enablePass
-  SpeedMode: False
   Labels:
-    location: dus
-    environment: stage
-    type: cer
-    bgp: yes
-    ospf: yes
+    location: munich
+    environment: prod
+    os: juniper

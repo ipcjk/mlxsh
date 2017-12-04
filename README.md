@@ -192,7 +192,7 @@ docker run -ti joerg/mlxsh /bin/sh
  ### full list of possible host parameters in YAML
  
  - ConfigFile: File with configuration statements
- - DeviceType: Type of Device, possible: MLX,CER,MLXE,XMR,IRON,TurboIron,ICX,FCS,SLX,VDX,MX,EX 
+ - DeviceType: Type of Device, possible: MLX,CER,MLXE,XMR,IRON,TurboIron,ICX,FCS,SLX,VDX,Juniper 
  - EnablePassword: Password that may be needed for privileged mode
  - ExecMode (internal): True or false, if its necessary to execute commands or configure
  - FileName (internal): Filename with config or command statements
