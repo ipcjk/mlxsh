@@ -227,9 +227,7 @@ func main() {
 				fmt.Println("════════════════════════════════════════════════════════════════════════")
 			}
 		}
-
 	}
-
 }
 
 func getUserKnownHostsFile() string {
