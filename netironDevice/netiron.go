@@ -13,10 +13,7 @@ type netironDevice struct {
 	Router router.Router
 }
 
-/*
-NetironDevice returns a new
-netironDevice object, has a init struct of type NetironConfig
-*/
+/*NetironDevice returns a new netironDevice object, has a init struct of type NetironConfig */
 func NetironDevice(Config router.RunTimeConfig) *netironDevice {
 	var configureErrors = `(?i)(Please first configure|invalid command|Invalid input|Warning|skipped due|Error)`
 
@@ -66,7 +63,7 @@ func (b *netironDevice) DetectSetPrompt(prompt string) error {
 		b.Router.PromptMode = "sshNonEnabled"
 		b.Router.SSHUnprivilegedPrompt = prompt
 	} else if err != nil {
-		return fmt.Errorf("Cant run regexp for prompt detection, weird!")
+		return fmt.Errorf("Cant run regexp for prompt detection, weird! Error was: %s", err)
 	}
 
 	matched, err = regexp.MatchString("#$", prompt)
@@ -74,7 +71,7 @@ func (b *netironDevice) DetectSetPrompt(prompt string) error {
 		b.Router.PromptMode = "sshEnabled"
 		b.Router.SSHUnprivilegedPrompt = strings.Replace(prompt, "#", ">", 1)
 	} else if err != nil {
-		return fmt.Errorf("Cant run regexp for prompt detection, weird!")
+		return fmt.Errorf("Cant run regexp for prompt detection, weird! Error was: %s", err)
 	}
 
 	/*

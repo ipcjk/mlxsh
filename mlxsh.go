@@ -21,6 +21,7 @@ import (
 	"github.com/ipcjk/mlxsh/netironDevice"
 	"github.com/ipcjk/mlxsh/routerDevice"
 	"github.com/ipcjk/mlxsh/vdxDevice"
+	"runtime"
 )
 
 var cliWriteTimeout, cliReadTimeout time.Duration
@@ -52,7 +53,7 @@ func init() {
 	flag.BoolVar(&debug, "debug", false, "Enable debug for read / write")
 	flag.BoolVar(&cliHostCheck, "s", false, "Enable strict hostkey checking for ssh connections")
 	flag.StringVar(&cliKeyFile, "i", "", "Path to a ssh private key (in openssh2-format) that will be used for connections ")
-	flag.StringVar(&cliHostFile, "sf", "", "Path to the known-hosts-file (in openssh2-format) that will be used for validating hostkeys ")
+	flag.StringVar(&cliHostFile, "sf", "", "Path to the known-hosts-file (in openssh2-format) that will be used for validating hostkeys, defaults to .ssh/known_hosts ")
 	flag.BoolVar(&cliSpeedMode, "speedmode", false, "Enable speed mode write, will ignore any output from the cli while writing")
 	flag.BoolVar(&quiet, "q", false, "quiet mode, no output except error on connecting & co")
 	flag.BoolVar(&version, "version", false, "prints version and exit")
@@ -77,6 +78,10 @@ func init() {
 	} else if cliHostname != "" && cliLabel != "" {
 		log.Println("Cant run in targetHost-mode or groupselection")
 		os.Exit(0)
+	}
+
+	if cliHostFile == "" {
+		cliHostFile = getUserKnownHostsFile()
 	}
 
 	if cliRouterFile != "" {
@@ -225,4 +230,15 @@ func main() {
 
 	}
 
+}
+
+func getUserKnownHostsFile() string {
+	if runtime.GOOS == "windows" {
+		home := os.Getenv("HOMEDRIVE") + os.Getenv("HOMEPATH") + `\.ssh\known_hosts`
+		if home == "" {
+			home = os.Getenv("USERPROFILE") + `\.ssh\known_hosts`
+		}
+		return home
+	}
+	return os.Getenv("HOME") + "/.ssh/known_hosts"
 }

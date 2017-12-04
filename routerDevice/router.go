@@ -13,10 +13,9 @@ import (
 	"time"
 )
 
-/* RunConfig is an init struct that can be used
+/*RunTimeConfig is an init struct that can be used
 to setup defaults and values for a Router object
 */
-
 type RunTimeConfig struct {
 	libhost.HostConfig
 	Debug           bool
@@ -26,7 +25,7 @@ type RunTimeConfig struct {
 	Hostkey         ssh.PublicKey
 }
 
-/* Router is a struct that will be used from the inside final router object */
+/*Router is a struct that will be used from the inside final router object */
 type Router struct {
 	/* Manage, scan and find the prompts */
 	PromptModes        map[string]string
@@ -55,7 +54,9 @@ type Router struct {
 
 /* All kind of "generic" routines, than can be used directly or indirectly by our routers */
 
-/* Setup SSH connection */
+/*SetupSSH will create a tcp
+connection and open a remote shell, optional a full
+pseudo terminal */
 func (ro *Router) SetupSSH(addr string, clientConfig *ssh.ClientConfig, requestPty bool) (err error) {
 	ro.SSHConnection, err = ssh.Dial("tcp", addr, clientConfig)
 	if err != nil {
@@ -104,6 +105,10 @@ func (ro *Router) SetupSSH(addr string, clientConfig *ssh.ClientConfig, requestP
 	return
 }
 
+/*ReadTill is our main function for reading data from the input SSH-channel and will
+read from the input reader, till it finds a given string, else it will run into timeout
+and close the SSH channel and session
+*/
 func (ro *Router) ReadTill(rtc RunTimeConfig, search []string) (string, error) {
 	var lineBuf string
 	shortBuf := make([]byte, 512)
@@ -120,8 +125,7 @@ WaitInput:
 					fmt.Fprint(rtc.W, "Timed out waiting for incoming buffer")
 					fmt.Fprintf(rtc.W, "Waited for %s %d", search[0], len(search[0]))
 				}
-				ro.SSHSession.Close()
-				ro.SSHConnection.Close()
+				ro.Close()
 			case <-foundToken:
 				return
 			}
@@ -146,7 +150,8 @@ WaitInput:
 	return string(lineBuf), nil
 }
 
-/* Set default values for a Configuration */
+/*GenerateDefaults is setting default values for a RunTime-Configuration. It will also set all
+SSH-client options like password or key authentication */
 func GenerateDefaults(config *RunTimeConfig) {
 
 	/* Set reasonable defaults */
@@ -160,19 +165,21 @@ func GenerateDefaults(config *RunTimeConfig) {
 
 	/* Generate a SSH configuration profile */
 	sshClientConfig := &ssh.ClientConfig{User: config.Username, Auth: []ssh.AuthMethod{ssh.Password(config.Password)}}
-	/* Add default ciphers / hmacs */
+	/* Add default ciphers */
 	sshClientConfig.SetDefaults()
-	/* Add old ciphers for older Ironware */
+	/* Add old ciphers for older Ironware switches */
 	sshClientConfig.Ciphers = append(sshClientConfig.Ciphers, "aes128-cbc", "3des-cbc")
 
-	/* Check if StrictHostKeyCheck is needed */
+	/* Check if StrictHostKeyCheck is needed for this host */
 	if config.StrictHostCheck {
+		/* Try to open our known-host file */
 		file, err := os.Open(config.KnownHosts)
 		if err != nil {
 			fmt.Fprintf(config.W, "Fatal: Cant open known ssh hosts file for strict ssh host authentication")
 		}
 		defer file.Close()
 
+		/* Search a matching hostkey */
 		config.Hostkey = libssh.SearchHostKey(file, config.Hostname, config.SSHIP, config.SSHPort)
 
 		if config.Hostkey != nil {
@@ -211,19 +218,26 @@ func GenerateDefaults(config *RunTimeConfig) {
 	}
 }
 
+/*ReadTillEnabledPrompt internal calls ReadTill, looking for the SSH enabled prompt string */
 func (ro *Router) ReadTillEnabledPrompt(rtc RunTimeConfig) (string, error) {
 	return ro.ReadTill(rtc, []string{ro.SSHEnabledPrompt})
 }
 
+/*ReadTillConfigPrompt internal calls ReadTill, looking for the SSH configuration prompt string */
 func (ro *Router) ReadTillConfigPrompt(rtc RunTimeConfig) (string, error) {
 	return ro.ReadTill(rtc, []string{ro.SSHConfigPrompt})
-
 }
 
+/*ReadTillConfigPromptSection internal calls ReadTill, looking for the SSH configuration
+section prompt string */
 func (ro *Router) ReadTillConfigPromptSection(rtc RunTimeConfig) (string, error) {
 	return ro.ReadTill(rtc, []string{ro.SSHConfigPromptPre})
 }
 
+/* Write
+takes a runtimeconfiguration and a command string and will write the command string into
+the SSH input stream
+*/
 func (ro *Router) Write(rtc RunTimeConfig, command string) error {
 	_, err := ro.SSHStdinPipe.Write([]byte(command))
 	if err != nil {
@@ -237,8 +251,10 @@ func (ro *Router) Write(rtc RunTimeConfig, command string) error {
 	return nil
 }
 
+/*PasteConfiguration takes a runtimeconfiguration and a reader as argument. It will read the
+reader line-by-line and inject configuration statements
+*/
 func (ro *Router) PasteConfiguration(rtc RunTimeConfig, configuration io.Reader) (err error) {
-
 	scanner := bufio.NewScanner(configuration)
 	for scanner.Scan() {
 		if err := ro.Write(rtc, scanner.Text()+"\n"); err != nil {
@@ -265,6 +281,7 @@ func (ro *Router) PasteConfiguration(rtc RunTimeConfig, configuration io.Reader)
 	return
 }
 
+/*GetPromptMode will check and set the current prompt situation */
 func (ro *Router) GetPromptMode(rtc RunTimeConfig) error {
 
 	if err := ro.Write(rtc, "\n"); err != nil {
@@ -290,6 +307,8 @@ func (ro *Router) GetPromptMode(rtc RunTimeConfig) error {
 	return nil
 }
 
+/*RunCommands will run commands inside the devices exec- or privileged mode.
+Command will be read from a io.reader. */
 func (ro *Router) RunCommands(rtc RunTimeConfig, commands io.Reader) (err error) {
 
 	scanner := bufio.NewScanner(commands)
@@ -307,6 +326,8 @@ func (ro *Router) RunCommands(rtc RunTimeConfig, commands io.Reader) (err error)
 	return err
 }
 
+/*DetectPrompt will try to detect the initial prompt and from this information will build a map of
+future possible prompts, e.g. the configuration prompt. */
 func (ro *Router) DetectPrompt(rtc RunTimeConfig, prompt string) error {
 
 	myPrompt := regexp.MustCompile(ro.PromptDetect).FindString(prompt)
@@ -339,6 +360,7 @@ func (ro *Router) DetectPrompt(rtc RunTimeConfig, prompt string) error {
 
 }
 
+/*Close will close the SSH-session and the SSH-tcp-connection */
 func (ro *Router) Close() {
 	if ro.SSHSession != nil {
 		ro.SSHSession.Close()

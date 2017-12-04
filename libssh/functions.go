@@ -12,9 +12,7 @@ import (
 	"strings"
 )
 
-/* LoadPrivateKey
-loads ssh rsa or dsa private keys, is exported for testing
-*/
+/*LoadPrivateKey loads ssh rsa or dsa private keys, is exported for testing */
 func LoadPrivateKey(r io.Reader) (ssh.AuthMethod, error) {
 	buffer, err := ioutil.ReadAll(r)
 	if err != nil {
@@ -28,7 +26,8 @@ func LoadPrivateKey(r io.Reader) (ssh.AuthMethod, error) {
 	return ssh.PublicKeys(key), nil
 }
 
-/* SearchHostKey searches for a host-entry in a reader  */
+/*SearchHostKey searches for a host-entry in a reader in openssh-format,
+will work for normal and hashed   */
 func SearchHostKey(r io.Reader, hostname, ip string, port int) (hostKey ssh.PublicKey) {
 
 	var err error
@@ -109,10 +108,10 @@ func decodeHash(encoded string) (hashType string, salt, hash []byte, err error) 
 	hashType = components[1]
 
 	if salt, err = base64.StdEncoding.DecodeString(components[2]); err != nil {
-		return "", nil, nil, fmt.Errorf("foo", err)
+		return "", nil, nil, fmt.Errorf("Cant decode salt from input string: %s", err)
 	}
 	if hash, err = base64.StdEncoding.DecodeString(components[3]); err != nil {
-		return "", nil, nil, fmt.Errorf("foo", err)
+		return "", nil, nil, fmt.Errorf("Cant decode hash from input string: %s", err)
 	}
 	return
 }

@@ -12,29 +12,32 @@ In version 0.3 I have added basic JunOS support. To use your device as Juniper-r
 
 ## modes
  
- mlxsh has two different modes:
+ mlxsh has two different modes
  
- - cli mode 
- - YAML mode
+ - exec mode 
+ - config mode
  
- In cli mode mlxsh reads all params for a **single router** directly from the command line arguments. It is good for one-shots, one-liners or testing connectivity.
+ and two different sources of origin hosts:
+ 
+ - cli  (command line arguments)
+ - yaml - file
+ 
+ In cli origin source mlxsh reads all params for a **single router** directly from the command line arguments. It is good for one-shots, one-liners or testing connectivity.
   
  In YAML mode mlxsh reads **records of routers** from a YAML-file. Therefore it is possible to work on groups of routers by calling out user-defined labels.
   It also allows to overwrite certain params from the command line to calling out  scripts or config-commands without re-editing the YAML configuration.
    
-   
- Also we distinguish by exec and configuration mode.
- 
+    
 ### exec vs config mode 
-   If you pass a file with the -script command, the router will drop into the
-   _exec or privileged mode_. If you pass in the file with the -config parameter, the router will be inserting configuration in the _configuration-terminal mode_.
+   If you pass a file or a command with the -script command, the router will drop into the
+   _exec or privileged mode_. If you pass in the file with the -config parameter, the router will be inserting configuration into the devices _configuration mode_.
     
    E.g. if you want to run commands in the executable mode, be sure to set the script-parameter at start, else it will drop into config mode:
     
    ```bash
    crontab -l
     0 4 * * *  mlxsh -hostname rt1 -password nocpassword -username noc -enable enablepassword\
-     -script /home/noc/brocade_scripts/bgp_sum  
+     -script "show ip bgp summary"  
    ```
 
  
@@ -106,14 +109,14 @@ Total IPv6 and IPv6 VPN Cache Entry Usage on LPs:
    mlxsh -label "location=frankfurt,environment=production" -script "show ip bgp summary"
 ```
  
- - chain commands and run several after the other
+ - chain commands 
  ```bash
     mlxsh -label "location=frankfurt,environment=production" -script "show ip bgp summary; show ip cache; show uptime"
  ```
  
- - parallel execution in background on router-groups with the -c flag, defaults to two
+ - parallel execution in background on router-groups with the -c flag, defaults to ten
  ```bash
- mlxsh -c10 -label "location=munich" -script "show ip bgp 8.8.8.8"
+ mlxsh -c20 -label "location=munich" -script "show ip bgp 8.8.8.8"
  ```
  
 - other cool examples ro run mlxsh:
@@ -194,13 +197,15 @@ docker run -ti joerg/mlxsh /bin/sh
  - FileName (internal): Filename with config or command statements
  - HostName: Hostname to connect to
  - KeyFile: SSH private key that is needed for auth
+ - KnownHosts: SSH Hostkeys for host-auth and to prevent MitM
+ - Labels: Map of labels to group devices for command execution (see example yaml-file)
  - Password: SSH password for the initial connection
  - ReadTimeout: Timeout waiting for output from the device, tune for slow devices
  - ScriptFile: File with execution statements
  - SpeedMode: true or false: wait for prompt to return after execution
  - SSHIP: IP to connect to, will overwrite Hostname if set
  - SSHPort: SSH Port to connect to, default is 22
- - StrictHostCheck: yes/no or true/false, on true/yes we will scan the users known_hosts_file 
+ - StrictHostCheck: yes/no or true/false, on true/yes we will scan the known_hosts_file 
  - Username: User for the initial ssh connection
  - WriteTimeout: time to wait after a command statement, tune for slow devices 
  
