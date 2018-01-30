@@ -16,12 +16,15 @@ import (
 	"sync"
 	"time"
 
+	"github.com/mattn/go-isatty"
+
+	"runtime"
+
 	"github.com/ipcjk/mlxsh/junosDevice"
 	"github.com/ipcjk/mlxsh/libhost"
 	"github.com/ipcjk/mlxsh/netironDevice"
 	"github.com/ipcjk/mlxsh/routerDevice"
 	"github.com/ipcjk/mlxsh/vdxDevice"
-	"runtime"
 )
 
 var cliWriteTimeout, cliReadTimeout time.Duration
@@ -29,6 +32,7 @@ var cliHostname, cliPassword, cliUsername, cliEnablePassword string
 var cliSpeedMode bool
 var debug, version, quiet, cliHostCheck bool
 var cliMaxParallel int
+var outputIsTerminal bool
 var cliScriptFile, cliConfigFile, cliRouterFile, cliLabel, cliType, cliKeyFile, cliHostFile string
 var selectedHosts []libhost.HostConfig
 
@@ -70,6 +74,10 @@ func init() {
 	if version {
 		log.Println("mlxsh 0.3 (C) 2017 by Jörg Kost, jk@ip-clear.de")
 		os.Exit(0)
+	}
+
+	if isatty.IsTerminal(os.Stdout.Fd()) {
+		outputIsTerminal = true
 	}
 
 	if cliHostname == "" && cliLabel == "" {
@@ -207,27 +215,21 @@ func main() {
 	}()
 
 	// printer
+	// printer
 	for elems := range hostChannel {
-		if elems.err != nil {
-			fmt.Printf("╔══════════════════════════════════════════════════════════════════════╗\n")
-			fmt.Printf("║%-70s║\n", elems.hostName)
-			fmt.Printf("║%-70s║\n", "No success:")
-			fmt.Println("╚══════════════════════════════════════════════════════════════════════╝")
-			fmt.Printf("║%-70s║\n", elems.err)
-			fmt.Println("════════════════════════════════════════════════════════════════════════")
-			if elems.message != "" {
-				fmt.Println(elems.message)
-			}
+		/* Very greedy, we count the numbers of "+" for configuration statements for a more detailed output */
+
+		if elems.err != nil && quiet {
+			fmt.Printf("\x1b[31m%s: [%-20s]\x1b[0m\n", "err", elems.hostName)
+		} else if elems.err != nil {
+			fmt.Printf("\x1b[31m%s: [%-20s] %s %s\x1b[0m\n", "err", elems.hostName, elems.message, elems.err)
+		} else if quiet {
+			fmt.Printf("\x1b[32m%s:  [%-20s]\x1b[0m\n", "ok", elems.hostName)
 		} else {
-			if quiet == false {
-				fmt.Printf("╔══════════════════════════════════════════════════════════════════════╗\n")
-				fmt.Printf("║%-70s║\n", elems.hostName)
-				fmt.Println("╚══════════════════════════════════════════════════════════════════════╝")
-				fmt.Println(elems.message)
-				fmt.Println("════════════════════════════════════════════════════════════════════════")
-			}
+			fmt.Printf("\x1b[32m%s:  [%-20s] \x1b[0m%s\n", "ok", elems.hostName, elems.message)
 		}
 	}
+
 }
 
 func getUserKnownHostsFile() string {
