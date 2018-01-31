@@ -32,7 +32,7 @@ var cliHostname, cliPassword, cliUsername, cliEnablePassword string
 var cliSpeedMode bool
 var debug, version, quiet, cliHostCheck bool
 var cliMaxParallel int
-var outputIsTerminal bool
+var outputIsTerminal, cliNoColor bool
 var cliScriptFile, cliConfigFile, cliRouterFile, cliLabel, cliType, cliKeyFile, cliHostFile string
 var selectedHosts []libhost.HostConfig
 
@@ -61,6 +61,7 @@ func init() {
 	flag.BoolVar(&cliSpeedMode, "speedmode", false, "Enable speed mode write, will ignore any output from the cli while writing")
 	flag.BoolVar(&quiet, "q", false, "quiet mode, no output except error on connecting & co")
 	flag.BoolVar(&version, "version", false, "prints version and exit")
+	flag.BoolVar(&cliNoColor, "nocolor", false, "Disable color printing when output line is a terminal")
 
 	if os.Getenv("JK") == "1" {
 		log.Println("Developer configuration active")
@@ -215,19 +216,29 @@ func main() {
 	}()
 
 	// printer
-	// printer
 	for elems := range hostChannel {
-		/* Very greedy, we count the numbers of "+" for configuration statements for a more detailed output */
+		state := "OK"
 
-		if elems.err != nil && quiet {
-			fmt.Printf("\x1b[31m%s: [%-20s]\x1b[0m\n", "err", elems.hostName)
-		} else if elems.err != nil {
-			fmt.Printf("\x1b[31m%s: [%-20s] %s %s\x1b[0m\n", "err", elems.hostName, elems.message, elems.err)
-		} else if quiet {
-			fmt.Printf("\x1b[32m%s:  [%-20s]\x1b[0m\n", "ok", elems.hostName)
-		} else {
-			fmt.Printf("\x1b[32m%s:  [%-20s] \x1b[0m%s\n", "ok", elems.hostName, elems.message)
+		if elems.err != nil {
+			state = "err"
 		}
+
+		if !outputIsTerminal || cliNoColor {
+			fmt.Printf("%s: [%-20s]", state, elems.hostName)
+		} else if state == "err" {
+			fmt.Printf("\x1b[31m%s: [%-20s]\x1b[0m", state, elems.hostName)
+		} else {
+			fmt.Printf("\x1b[32m%s: [%-20s]\x1b[0m", state, elems.hostName)
+		}
+
+		if state == "err" {
+			fmt.Printf(" %s", elems.err)
+		} else if !quiet {
+			fmt.Printf(" %s", elems.message)
+		}
+
+		fmt.Printf("\n")
+
 	}
 
 }
