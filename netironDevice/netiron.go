@@ -2,10 +2,11 @@ package netironDevice
 
 import (
 	"fmt"
-	"github.com/ipcjk/mlxsh/routerDevice"
 	"io"
 	"regexp"
 	"strings"
+
+	"github.com/ipcjk/mlxsh/routerDevice"
 )
 
 type netironDevice struct {

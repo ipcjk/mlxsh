@@ -2,10 +2,11 @@ package libhost_test
 
 import (
 	"fmt"
-	. "github.com/ipcjk/mlxsh/libhost"
 	"strings"
 	"testing"
 	"time"
+
+	. "github.com/ipcjk/mlxsh/libhost"
 )
 
 var hostYaml = `
@@ -85,7 +86,7 @@ func TestLoadHostNameFromYaml(t *testing.T) {
 	cliLabel := ""
 	cliHostname := "amsix-router"
 
-	selectedHosts, err := LoadMatchesFromYAML(r, cliLabel, cliHostname)
+	selectedHosts, _, err := LoadMatchesFromYAML(r, cliLabel, cliHostname)
 	if err != nil {
 		t.Error(err)
 	}

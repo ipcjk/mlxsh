@@ -2,11 +2,13 @@ package libhost
 
 import (
 	"fmt"
-	"gopkg.in/yaml.v1"
 	"io"
 	"io/ioutil"
+	"sort"
 	"strings"
 	"time"
+
+	"gopkg.in/yaml.v1"
 )
 
 /*
@@ -120,27 +122,57 @@ func (h *HostConfig) ApplyCliSettings(scriptFile, configFile string, writeTimeou
 
 }
 
-/*LoadMatchesFromYAML reads the yaml configuration reader source
+/*LoadMatchesFromSlice reads the allHosts slice
 and returns a slice of hosts that matches the given labels
 */
-func LoadMatchesFromYAML(r io.Reader, label, hostname string) ([]HostConfig, error) {
-
-	var hostsConfig []HostConfig
+func LoadMatchesFromSlice(allHosts []HostConfig, label string) ([]HostConfig, error) {
 	var hostsMatch []HostConfig
 
-	hostsConfig, err := LoadAllFromYAML(r)
-	if err != nil {
-		return []HostConfig{}, fmt.Errorf("Cant load from yaml source: %s", err)
+	for _, Host := range allHosts {
+		if label != "" && Host.MatchLabels(label) {
+			hostsMatch = append(hostsMatch, Host)
+		} else if label == "" {
+			hostsMatch = append(hostsMatch, Host)
+		}
 	}
 
-	for _, Host := range hostsConfig {
+	sort.Slice(hostsMatch, func(i, j int) bool {
+		return hostsMatch[i].Hostname < hostsMatch[j].Hostname
+	})
+
+	return hostsMatch, nil
+}
+
+/*LoadMatchesFromYAML reads the yaml configuration reader source
+and returns a slice of hosts that matches the given labels and also
+a slice with all hosts from the yaml file
+*/
+func LoadMatchesFromYAML(r io.Reader, label, hostname string) ([]HostConfig, []HostConfig, error) {
+
+	var allHosts []HostConfig
+	var hostsMatch []HostConfig
+
+	allHosts, err := LoadAllFromYAML(r)
+	if err != nil {
+		return []HostConfig{}, []HostConfig{}, fmt.Errorf("Cant load from yaml source: %s", err)
+	}
+
+	for _, Host := range allHosts {
 		if hostname != "" && hostname == Host.Hostname {
 			hostsMatch = append(hostsMatch, Host)
-			return hostsMatch, nil
+			return nil, hostsMatch, nil
 		} else if label != "" && Host.MatchLabels(label) {
 			hostsMatch = append(hostsMatch, Host)
 		}
 	}
 
-	return hostsMatch, nil
+	sort.Slice(hostsMatch, func(i, j int) bool {
+		return hostsMatch[i].Hostname < hostsMatch[j].Hostname
+	})
+
+	sort.Slice(allHosts, func(i, j int) bool {
+		return allHosts[i].Hostname < allHosts[j].Hostname
+	})
+
+	return hostsMatch, allHosts, nil
 }

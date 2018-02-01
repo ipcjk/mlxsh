@@ -12,14 +12,3 @@
     type: cer
     bgp: yes
     ospf: yes
-- Hostname: sw52.example.com
-  Username: joergkost
-  Password: foo
-  DeviceType: juniper
-  KeyFile: /home/joergkost/.ssh/id_dsa
-  StrictHostCheck: no
-  SSHPort: 22
-  Labels:
-    location: munich
-    environment: prod
-    os: juniper

@@ -3,14 +3,15 @@ package router
 import (
 	"bufio"
 	"fmt"
-	"github.com/ipcjk/mlxsh/libhost"
-	"github.com/ipcjk/mlxsh/libssh"
-	"golang.org/x/crypto/ssh"
 	"io"
 	"os"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/ipcjk/mlxsh/libhost"
+	"github.com/ipcjk/mlxsh/libssh"
+	"golang.org/x/crypto/ssh"
 )
 
 /*RunTimeConfig is an init struct that can be used
@@ -369,4 +370,9 @@ func (ro *Router) Close() {
 	if ro.SSHConnection != nil {
 		ro.SSHConnection.Close()
 	}
+}
+
+/*Close will close the SSH-session and the SSH-tcp-connection */
+func (ro *Router) LearnCacheMode() {
+
 }

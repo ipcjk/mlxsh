@@ -32,9 +32,9 @@ var cliHostname, cliPassword, cliUsername, cliEnablePassword string
 var cliSpeedMode bool
 var debug, version, quiet, cliHostCheck bool
 var cliMaxParallel int
-var outputIsTerminal, cliNoColor bool
+var outputIsTerminal, cliNoColor, cliMode bool
 var cliScriptFile, cliConfigFile, cliRouterFile, cliLabel, cliType, cliKeyFile, cliHostFile string
-var selectedHosts []libhost.HostConfig
+var selectedHosts, allHosts []libhost.HostConfig
 
 type chanHost struct {
 	hostName string
@@ -51,13 +51,14 @@ func init() {
 	flag.StringVar(&cliUsername, "username", "", "username")
 	flag.StringVar(&cliEnablePassword, "enable", "", "enable password")
 	flag.StringVar(&cliType, "clitype", "mlxe", "Router type")
+	flag.StringVar(&cliKeyFile, "i", "", "Path to a ssh private key (in openssh2-format) that will be used for connections ")
+	flag.StringVar(&cliHostFile, "sf", "", "Path to the known-hosts-file (in openssh2-format) that will be used for validating hostkeys, defaults to .ssh/known_hosts ")
 	flag.IntVar(&cliMaxParallel, "c", 20, "concurrent working threads")
 	flag.DurationVar(&cliReadTimeout, "readtimeout", time.Second*30, "timeout for reading poll on cli select")
 	flag.DurationVar(&cliWriteTimeout, "writetimeout", time.Millisecond*0, "timeout to stall after a write to cli")
+	flag.BoolVar(&cliMode, "cli", false, "Run in libreadline command line prompt mode")
 	flag.BoolVar(&debug, "debug", false, "Enable debug for read / write")
 	flag.BoolVar(&cliHostCheck, "s", false, "Enable strict hostkey checking for ssh connections")
-	flag.StringVar(&cliKeyFile, "i", "", "Path to a ssh private key (in openssh2-format) that will be used for connections ")
-	flag.StringVar(&cliHostFile, "sf", "", "Path to the known-hosts-file (in openssh2-format) that will be used for validating hostkeys, defaults to .ssh/known_hosts ")
 	flag.BoolVar(&cliSpeedMode, "speedmode", false, "Enable speed mode write, will ignore any output from the cli while writing")
 	flag.BoolVar(&quiet, "q", false, "quiet mode, no output except error on connecting & co")
 	flag.BoolVar(&version, "version", false, "prints version and exit")
@@ -81,10 +82,15 @@ func init() {
 		outputIsTerminal = true
 	}
 
-	if cliHostname == "" && cliLabel == "" {
+	if !outputIsTerminal && cliMode {
+		log.Println("Cant run in cliMode without terminal")
+		os.Exit(0)
+	}
+
+	if cliHostname == "" && cliLabel == "" && !cliMode {
 		log.Println("No host/router or selector given, abort...")
 		os.Exit(0)
-	} else if cliHostname != "" && cliLabel != "" {
+	} else if cliHostname != "" && cliLabel != "" && cliMode == false {
 		log.Println("Cant run in targetHost-mode or groupselection")
 		os.Exit(0)
 	}
@@ -99,12 +105,17 @@ func init() {
 			log.Fatal(err)
 		}
 
-		selectedHosts, err = libhost.LoadMatchesFromYAML(file, cliLabel, cliHostname)
+		selectedHosts, allHosts, err = libhost.LoadMatchesFromYAML(file, cliLabel, cliHostname)
 		if err != nil {
 			log.Fatal(err)
 		}
-
 	}
+
+	/* Setup done for cliMode, rest setup is only done for one-shot */
+	if cliMode {
+		return
+	}
+
 	/*  Hostname on cli but did not found in list */
 	if cliHostname != "" && len(selectedHosts) == 0 {
 		selectedHosts = append(selectedHosts, libhost.HostConfig{Hostname: cliHostname, Username: cliUsername, Password: cliPassword, EnablePassword: cliEnablePassword, DeviceType: cliType, SpeedMode: cliSpeedMode, SSHPort: 22})
@@ -113,17 +124,30 @@ func init() {
 	if len(selectedHosts) == 0 {
 		log.Fatal("Could not find any target host for this labels")
 	}
+}
 
+func main() {
+	if cliMode {
+		runCliMode()
+	} else {
+		run()
+	}
+}
+
+func applyCliSettings() {
 	/* Possible overwrite settings from CliParameters */
 	for x := range selectedHosts {
 		selectedHosts[x].ApplyCliSettings(cliScriptFile, cliConfigFile, cliWriteTimeout, cliReadTimeout, cliHostCheck, cliKeyFile, cliHostFile)
 	}
 }
 
-func main() {
+/* Config or Exec-Statements running from command line parameter or file input */
+func run() {
 	hostChannel := make(chan chanHost, 1)
 	var wg sync.WaitGroup
 	var semaphore = make(chan struct{}, cliMaxParallel)
+
+	applyCliSettings()
 
 	// worker
 	for x := range selectedHosts {
@@ -238,9 +262,7 @@ func main() {
 		}
 
 		fmt.Printf("\n")
-
 	}
-
 }
 
 func getUserKnownHostsFile() string {
@@ -252,4 +274,16 @@ func getUserKnownHostsFile() string {
 		return home
 	}
 	return os.Getenv("HOME") + "/.ssh/known_hosts"
+}
+
+func getUserHistoryFile() string {
+	var historyFile = "/.mlxsh_history"
+	if runtime.GOOS == "windows" {
+		home := os.Getenv("HOMEDRIVE") + os.Getenv("HOMEPATH") + historyFile
+		if home == "" {
+			home = os.Getenv("USERPROFILE") + historyFile
+		}
+		return home
+	}
+	return os.Getenv("HOME") + historyFile
 }

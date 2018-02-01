@@ -2,10 +2,11 @@ package junosDevice
 
 import (
 	"fmt"
-	"github.com/ipcjk/mlxsh/routerDevice"
 	"io"
 	"regexp"
 	"time"
+
+	"github.com/ipcjk/mlxsh/routerDevice"
 )
 
 type junosDevice struct {

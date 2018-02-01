@@ -2,9 +2,10 @@ package vdxDevice
 
 import (
 	"fmt"
-	"github.com/ipcjk/mlxsh/routerDevice"
 	"io"
 	"time"
+
+	"github.com/ipcjk/mlxsh/routerDevice"
 )
 
 type vdxDevice struct {
