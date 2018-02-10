@@ -160,7 +160,7 @@ func LoadMatchesFromYAML(r io.Reader, label, hostname string) ([]HostConfig, []H
 	for _, Host := range allHosts {
 		if hostname != "" && hostname == Host.Hostname {
 			hostsMatch = append(hostsMatch, Host)
-			return nil, hostsMatch, nil
+			return hostsMatch, nil, nil
 		} else if label != "" && Host.MatchLabels(label) {
 			hostsMatch = append(hostsMatch, Host)
 		}
