@@ -196,11 +196,9 @@ func GenerateDefaults(config *RunTimeConfig) {
 	/* Allow authentication with ssh dsa or rsa key */
 	if config.KeyFile != "" {
 		if file, err := os.Open(config.KeyFile); err != nil {
-			if config.Debug {
-				fmt.Fprintf(config.W, "Cant load private key for ssh auth :(%s)\n", err)
-			}
+			fmt.Fprintf(config.W, "Cant load private key for ssh auth :(%s)\n", err)
 		} else {
-			if privateKey, err := libssh.LoadPrivateKey(file); err != nil && config.Debug {
+			if privateKey, err := libssh.LoadPrivateKey(file); err != nil {
 				fmt.Fprintf(config.W, "Cant load private key for ssh auth :(%s)\n", err)
 			} else {
 				sshClientConfig.Auth = append(sshClientConfig.Auth, privateKey)
@@ -370,9 +368,4 @@ func (ro *Router) Close() {
 	if ro.SSHConnection != nil {
 		ro.SSHConnection.Close()
 	}
-}
-
-/*Close will close the SSH-session and the SSH-tcp-connection */
-func (ro *Router) LearnCacheMode() {
-
 }
