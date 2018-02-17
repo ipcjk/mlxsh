@@ -1,9 +1,10 @@
 package libssh_test
 
 import (
-	"github.com/ipcjk/mlxsh/libssh"
 	"strings"
 	"testing"
+
+	"github.com/ipcjk/mlxsh/libssh"
 )
 
 func TestLoadingSSHKey(t *testing.T) {
