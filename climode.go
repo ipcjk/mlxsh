@@ -85,7 +85,7 @@ func loadAutoCompletion(l *rl.Instance) {
 		for x := range selectedHosts {
 			switch strings.ToLower(selectedHosts[x].DeviceType) {
 			case "vdx", "slx":
-				countDeviceTypes["slx"]++
+				countDeviceTypes["vdx"]++
 			case "mlx", "cer", "mlxe", "xmr", "iron", "turobiron", "icx", "fcs":
 				countDeviceTypes["netiron"]++
 			case "juniper", "junos", "mx", "ex", "j":
@@ -103,19 +103,27 @@ func loadAutoCompletion(l *rl.Instance) {
 	if newCompletionName == "" {
 		newCompletionName = defaultCliCompletionName
 	}
+
+	loadAutoCompletionNamed(l, newCompletionName)
+
+}
+
+func loadAutoCompletionNamed(l *rl.Instance, newCompletionName string) {
 	/* Currently hardcoded ;( */
-	fmt.Println("Set", newCompletionName, "as default command line autocompletion tree")
 
 	switch newCompletionName {
 	case "netiron":
 		l.Config.AutoComplete = cliNetironCompleter
 	case "junos":
 		l.Config.AutoComplete = cliJunOSCompleter
-	case "slx":
-		l.Config.AutoComplete = nil
+	case "vdx":
+		l.Config.AutoComplete = cliVDXCompleter
+	default:
+		l.Config.AutoComplete = cliNetironCompleter
+		newCompletionName = "netiron"
 	}
 
-	l.Config.AutoComplete = cliJunOSCompleter
+	fmt.Println("Set", newCompletionName, "as default command line autocompletion tree")
 
 }
 
@@ -187,6 +195,8 @@ func runCliMode() {
 		case strings.HasPrefix(line, "set filter "):
 			setFilter(line[11:])
 			loadAutoCompletion(l)
+		case strings.HasPrefix(line, "set complete "):
+			loadAutoCompletionNamed(l, line[13:])
 		case line == "bye":
 			goto exit
 		case line == "":
