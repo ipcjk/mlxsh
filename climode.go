@@ -104,12 +104,12 @@ func loadAutoCompletion(l *rl.Instance) {
 		newCompletionName = defaultCliCompletionName
 	}
 	/* Currently hardcoded ;( */
-	fmt.Println("Set ", newCompletionName, "as default autocompletion tree")
+	fmt.Println("Set", newCompletionName, "as default command line autocompletion tree")
 
 	switch newCompletionName {
 	case "netiron":
-		l.Config.AutoComplete = nil
-	case "juniper":
+		l.Config.AutoComplete = cliNetironCompleter
+	case "junos":
 		l.Config.AutoComplete = cliJunOSCompleter
 	case "slx":
 		l.Config.AutoComplete = nil
