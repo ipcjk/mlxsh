@@ -32,7 +32,7 @@ var cliHostname, cliPassword, cliUsername, cliEnablePassword string
 var cliSpeedMode bool
 var debug, version, quiet, cliHostCheck bool
 var cliMaxParallel int
-var outputIsTerminal, cliNoColor, cliMode bool
+var outputIsTerminal, cliNoColor, shellMode bool
 var cliScriptFile, cliConfigFile, cliRouterFile, cliLabel, cliType, cliKeyFile, cliHostFile string
 var selectedHosts, allHosts []libhost.HostConfig
 
@@ -56,7 +56,7 @@ func init() {
 	flag.IntVar(&cliMaxParallel, "c", 20, "concurrent working threads")
 	flag.DurationVar(&cliReadTimeout, "readtimeout", time.Second*30, "timeout for reading poll on cli select")
 	flag.DurationVar(&cliWriteTimeout, "writetimeout", time.Millisecond*0, "timeout to stall after a write to cli")
-	flag.BoolVar(&cliMode, "cli", false, "Run in libreadline command line prompt mode")
+	flag.BoolVar(&shellMode, "shell", false, "Run in libreadline command line prompt mode")
 	flag.BoolVar(&debug, "debug", false, "Enable debug for read / write")
 	flag.BoolVar(&cliHostCheck, "s", false, "Enable strict hostkey checking for ssh connections")
 	flag.BoolVar(&cliSpeedMode, "speedmode", false, "Enable speed mode write, will ignore any output from the cli while writing")
@@ -82,15 +82,15 @@ func init() {
 		outputIsTerminal = true
 	}
 
-	if !outputIsTerminal && cliMode {
-		log.Println("Cant run in cliMode without terminal")
+	if !outputIsTerminal && shellMode {
+		log.Println("Cant run in shellmode without terminal")
 		os.Exit(0)
 	}
 
-	if cliHostname == "" && cliLabel == "" && !cliMode {
+	if cliHostname == "" && cliLabel == "" && !shellMode {
 		log.Println("No host/router or selector given, abort...")
 		os.Exit(0)
-	} else if cliHostname != "" && cliLabel != "" && cliMode == false {
+	} else if cliHostname != "" && cliLabel != "" && shellMode == false {
 		log.Println("Cant run in targetHost-mode or groupselection")
 		os.Exit(0)
 	}
@@ -111,8 +111,8 @@ func init() {
 		}
 	}
 
-	/* Setup done for cliMode, rest setup is only done for one-shot */
-	if cliMode {
+	/* Setup done for shellmode, rest setup is only done for one-shot */
+	if shellMode {
 		return
 	}
 
@@ -127,7 +127,7 @@ func init() {
 }
 
 func main() {
-	if cliMode {
+	if shellMode {
 		runCliMode()
 	} else {
 		run()

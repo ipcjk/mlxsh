@@ -112,13 +112,12 @@ func loadAutoCompletion(l *rl.Instance) {
 
 func loadAutoCompletionNamed(l *rl.Instance, newCompletionName string) {
 	/* Currently hardcoded ;( */
-
 	switch newCompletionName {
-	case "netiron":
+	case "netiron", "mlx", "brocade", "cer", "tuborion", "mlxe":
 		l.Config.AutoComplete = cliNetironCompleter
-	case "junos":
+	case "junos", "juniper":
 		l.Config.AutoComplete = cliJunOSCompleter
-	case "vdx":
+	case "vdx", "slx":
 		l.Config.AutoComplete = cliVDXCompleter
 	default:
 		l.Config.AutoComplete = cliNetironCompleter
@@ -126,7 +125,6 @@ func loadAutoCompletionNamed(l *rl.Instance, newCompletionName string) {
 	}
 
 	fmt.Println("Set", newCompletionName, "as default command line autocompletion tree")
-
 }
 
 /* setFilter executes a filter set on allHosts and will also load a pre-defined
@@ -183,8 +181,8 @@ func runCliMode() {
 			default:
 				prepareRunCmd("run", "show "+line[5:])
 			}
-		case strings.HasPrefix(line, "get "):
-			switch line[4:] {
+		case strings.HasPrefix(line, "ls "):
+			switch line[3:] {
 			case "hosts":
 				printSelectedHosts()
 			case "selhosts":
@@ -193,6 +191,8 @@ func runCliMode() {
 				printAllHosts()
 			case "filter":
 				fmt.Println(cliLabel)
+			default:
+				printSelectedHosts()
 			}
 		case strings.HasPrefix(line, "set filter "):
 			setFilter(line[11:])

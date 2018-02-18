@@ -5,7 +5,7 @@ import rl "github.com/chzyer/readline"
 /* defaultGetCompletion
 is a parameter list of the default parameters for the get command. This
 list will be added to every completer */
-var defaultGetCompletion = rl.PcItem("get",
+var defaultGetCompletion = rl.PcItem("ls",
 	rl.PcItem("filter"),
 	rl.PcItem("hosts"),
 	rl.PcItem("selhosts"),
