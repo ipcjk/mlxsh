@@ -2,6 +2,24 @@ package main
 
 import rl "github.com/chzyer/readline"
 
+/* defaultGetCompletion
+is a parameter list of the default parameters for the get command. This
+list will be added to every completer */
+var defaultGetCompletion = rl.PcItem("get",
+	rl.PcItem("filter"),
+	rl.PcItem("hosts"),
+	rl.PcItem("selhosts"),
+	rl.PcItem("allhosts"))
+
+/* defaultSetCompletion
+is a parameter list of the default parameters for the get command. This
+list will be added to every completer */
+var defaultSetCompletion = rl.PcItem("set",
+	rl.PcItem("filter"))
+
+/* cliNetironCompleter
+is an autocompletion tree for the Netiron command line
+*/
 var cliNetironCompleter = rl.NewPrefixCompleter(
 	rl.PcItem("show",
 		rl.PcItem("access-list"),
@@ -171,20 +189,16 @@ var cliNetironCompleter = rl.NewPrefixCompleter(
 		rl.PcItem("version"),
 		rl.PcItem("vlan"),
 	),
-	rl.PcItem("get",
-		rl.PcItem("filter"),
-		rl.PcItem("hosts"),
-		rl.PcItem("selhosts"),
-		rl.PcItem("allhosts"),
-	),
-	rl.PcItem("set",
-		rl.PcItem("filter"),
-	),
+	defaultGetCompletion,
+	defaultSetCompletion,
 )
 
+/* cliJunOSCompleter
+is an autocompletion tree for the Netiron command line
+*/
 var cliJunOSCompleter = rl.NewPrefixCompleter(
 	rl.PcItem("show",
-		rl.PcItem("arp"),
+		rl.PcItem("arp", rl.PcItem("no-resolve")),
 		rl.PcItem("bfd"),
 		rl.PcItem("bgp",
 			rl.PcItem("group"),
@@ -310,20 +324,12 @@ var cliJunOSCompleter = rl.NewPrefixCompleter(
 				rl.PcItem("storage"),
 				rl.PcItem("uptime"),
 				rl.PcItem("users"),
-			),
-			rl.PcItem("version"),
-			rl.PcItem("virtual-chassis"),
-			rl.PcItem("vlans"),
-			rl.PcItem("vrrp"),
-		),
+			)),
+		rl.PcItem("version"),
+		rl.PcItem("virtual-chassis"),
+		rl.PcItem("vlans"),
+		rl.PcItem("vrrp"),
 	),
-	rl.PcItem("get",
-		rl.PcItem("filter"),
-		rl.PcItem("hosts"),
-		rl.PcItem("selhosts"),
-		rl.PcItem("allhosts"),
-	),
-	rl.PcItem("set",
-		rl.PcItem("filter"),
-	),
+	defaultGetCompletion,
+	defaultSetCompletion,
 )
