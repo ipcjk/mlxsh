@@ -9,6 +9,8 @@ allHosts
 
 Command prompt filter:
 cliLabel
+cliScriptFile
+cliConfigFile
 
 Sets a decision tree for the rl.guess function
 cliCompleter
