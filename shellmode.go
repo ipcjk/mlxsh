@@ -30,7 +30,6 @@ import (
 
 func filterInput(r rune) (rune, bool) {
 	switch r {
-	// block CtrlZ feature
 	case rl.CharCtrlZ:
 		return r, false
 	}
@@ -107,7 +106,6 @@ func loadAutoCompletion(l *rl.Instance) {
 	}
 
 	loadAutoCompletionNamed(l, newCompletionName)
-
 }
 
 func loadAutoCompletionNamed(l *rl.Instance, newCompletionName string) {
@@ -123,14 +121,12 @@ func loadAutoCompletionNamed(l *rl.Instance, newCompletionName string) {
 		l.Config.AutoComplete = cliNetironCompleter
 		newCompletionName = "netiron"
 	}
-
 	fmt.Println("Set", newCompletionName, "as default command line autocompletion tree")
 }
 
 /* setFilter executes a filter set on allHosts and will also load a pre-defined
 auto completion tree */
 func setFilter(label string) {
-
 	var err error
 	selectedHosts, err = libhost.LoadMatchesFromSlice(allHosts, label)
 	if err != nil {
@@ -142,8 +138,7 @@ func setFilter(label string) {
 }
 
 /* Command line mode: Read commands or config statements from shell, execute on targets */
-func runCliMode() {
-
+func runShellMode() {
 	l, err := rl.NewEx(&rl.Config{
 		Prompt:              "\033[31mmlxsh>\033[0m ",
 		HistoryFile:         getUserHistoryFile(),
@@ -176,16 +171,14 @@ func runCliMode() {
 
 		line = strings.TrimSpace(line)
 		switch {
-		case strings.HasPrefix(line, "show "):
-			switch line[5:] {
+		case strings.HasPrefix(line, "clear "):
+			switch line[6:] {
 			default:
-				prepareRunCmd("run", "show "+line[5:])
+				prepareRunCmd("run", line[6:])
 			}
 		case strings.HasPrefix(line, "ls "):
 			switch line[3:] {
-			case "hosts":
-				printSelectedHosts()
-			case "selhosts":
+			case "hosts", "selhosts":
 				printSelectedHosts()
 			case "allhosts":
 				printAllHosts()
@@ -194,16 +187,31 @@ func runCliMode() {
 			default:
 				printSelectedHosts()
 			}
-		case strings.HasPrefix(line, "set filter "):
-			setFilter(line[11:])
+		case strings.HasPrefix(line, "request "):
+			switch line[8:] {
+			default:
+				prepareRunCmd("run", line[8:])
+			}
+		case strings.HasPrefix(line, "run "):
+			switch line[4:] {
+			default:
+				prepareRunCmd("run", line[4:])
+			}
+		case strings.HasPrefix(line, "mset filter "):
+			setFilter(line[12:])
 			loadAutoCompletion(l)
-		case strings.HasPrefix(line, "set complete "):
-			loadAutoCompletionNamed(l, line[13:])
-		case line == "bye":
+		case strings.HasPrefix(line, "mset complete "):
+			loadAutoCompletionNamed(l, line[14:])
+		case strings.HasPrefix(line, "show "):
+			switch line[5:] {
+			default:
+				prepareRunCmd("run", "show "+line[5:])
+			}
+		case line == "exit":
 			goto exit
 		case line == "":
 		default:
-			fmt.Println("command not found or parameter missing:", strconv.Quote(line))
+			fmt.Println("command not found or param missing:", strconv.Quote(line))
 		}
 	}
 exit:
@@ -212,7 +220,6 @@ exit:
 }
 
 func prepareRunCmd(confOrRun, line string) {
-
 	if confOrRun == "run" {
 		cliScriptFile = line
 		cliConfigFile = ""
@@ -220,6 +227,5 @@ func prepareRunCmd(confOrRun, line string) {
 		cliConfigFile = line
 		cliScriptFile = ""
 	}
-
 	run()
 }

@@ -12,27 +12,24 @@ import (
 	"io"
 	"log"
 	"os"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/mattn/go-isatty"
-
-	"runtime"
 
 	"github.com/ipcjk/mlxsh/junosDevice"
 	"github.com/ipcjk/mlxsh/libhost"
 	"github.com/ipcjk/mlxsh/netironDevice"
 	"github.com/ipcjk/mlxsh/routerDevice"
 	"github.com/ipcjk/mlxsh/vdxDevice"
+	"github.com/mattn/go-isatty"
 )
 
 var cliWriteTimeout, cliReadTimeout time.Duration
 var cliHostname, cliPassword, cliUsername, cliEnablePassword string
-var cliSpeedMode bool
-var debug, version, quiet, cliHostCheck bool
-var cliMaxParallel int
+var debug, version, quiet, cliHostCheck, cliSpeedMode bool
 var outputIsTerminal, cliNoColor, shellMode bool
+var cliMaxParallel int
 var cliScriptFile, cliConfigFile, cliRouterFile, cliLabel, cliType, cliKeyFile, cliHostFile string
 var selectedHosts, allHosts []libhost.HostConfig
 
@@ -128,7 +125,7 @@ func init() {
 
 func main() {
 	if shellMode {
-		runCliMode()
+		runShellMode()
 	} else {
 		run()
 	}

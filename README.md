@@ -176,6 +176,8 @@ docker run -ti joerg/mlxsh /bin/sh
     	Path to a ssh private key \(in openssh2-format\) that will be used for connections 
   -label string
     	label-selection for run commands on a group of routers, e.g. 'location=munich,environment=prod'
+  -nocolor
+    	Disable color printing when output line is a terminal
   -password string
     	user password
   -q	quiet mode, no output except error on connecting & co
@@ -188,6 +190,8 @@ docker run -ti joerg/mlxsh /bin/sh
     	script file to to execute, if no file is found, its used as a direct command
   -sf string
     	Path to the known-hosts-file \(in openssh2-format\) that will be used for validating hostkeys, defaults to .ssh/known_hosts 
+  -shell
+    	Run in shell / libreadline command line prompt mode
   -speedmode
     	Enable speed mode write, will ignore any output from the cli while writing
   -username string
@@ -200,7 +204,7 @@ docker run -ti joerg/mlxsh /bin/sh
  
  ### full list of possible host parameters in YAML
  
- - ConfigFile: File with configuration statements
+ - ConfigFile: File with configuration statements  (for fixed statements)
  - DeviceType: Type of Device, possible: MLX,CER,MLXE,XMR,IRON,TurboIron,ICX,FCS,SLX,VDX,Juniper 
  - EnablePassword: Password that may be needed for privileged mode
  - ExecMode (internal): True or false, if its necessary to execute commands or configure
@@ -211,7 +215,7 @@ docker run -ti joerg/mlxsh /bin/sh
  - Labels: Map of labels to group devices for command execution (see example yaml-file)
  - Password: SSH password for the initial connection
  - ReadTimeout: Timeout waiting for output from the device, tune for slow devices
- - ScriptFile: File with execution statements
+ - ScriptFile: File with execution statements (for fixed statements)
  - SpeedMode: true or false: wait for prompt to return after execution
  - SSHIP: IP to connect to, will overwrite Hostname if set
  - SSHPort: SSH Port to connect to, default is 22
