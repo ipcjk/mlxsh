@@ -6,10 +6,12 @@
 
 mlxsh is the missing power command-line that enables you to enter configuration changes or operating commands to groups of Brocade / Extreme Networks Netiron devices (MLX, MLXE, CER, XMR), other Ironware style devices like Turboiron, ICX and also SLX/VDX switches and new (since 0.3) also for Juniper switches.
 
-![gif](https://raw.githubusercontent.com/ipcjk/staticpage/master/mlxsh.gif)
 
 ## Version 0.4
 Version 0.4 now has a shell mode. You can drop into a shell like environment when you add the //-shell// command switch. Inside  //shell//-mode you can dynamically run //show// and also //run//-commands without restart the mlxsh-process. You can also apply host filters and use a command line autosuggestion for specifc router types.
+
+![gif](https://raw.githubusercontent.com/ipcjk/staticpage/master/mlxsh.gif)
+
 
 ## Version 0.3: Junos Support
 In version 0.3 I have added basic JunOS support. To use your device as Juniper-router you need to add "DeviceType: juniper" to your YAML-configuration file. 
