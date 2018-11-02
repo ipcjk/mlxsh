@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
+	"github.com/ipcjk/mlxsh/slxDevice"
 	"io"
 	"log"
 	"os"
@@ -157,8 +158,10 @@ func run() {
 			var singleRouter RouterInt
 
 			switch strings.ToLower(selectedHosts[x].DeviceType) {
-			case "vdx", "slx":
+			case "vdx":
 				singleRouter = RouterInt(vdxDevice.VdxDevice(router.RunTimeConfig{HostConfig: selectedHosts[x], Debug: debug, W: buffer}))
+			case "slx":
+				singleRouter = RouterInt(slxDevice.SlxDevice(router.RunTimeConfig{HostConfig: selectedHosts[x], Debug: debug, W: buffer}))
 			case "mlx", "cer", "mlxe", "xmr", "iron", "turobiron", "icx", "fcs":
 				singleRouter = RouterInt(netironDevice.NetironDevice(
 					router.RunTimeConfig{HostConfig: selectedHosts[x], Debug: debug, W: buffer}))
@@ -180,7 +183,7 @@ func run() {
 			}()
 
 			if singleRouter == nil {
-				err = fmt.Errorf("Cant instance router object")
+				err = fmt.Errorf("can't instance router object")
 				return
 			}
 
@@ -253,7 +256,7 @@ func run() {
 		}
 
 		if state == "err" {
-			fmt.Printf(" %s", elems.err)
+			fmt.Printf(" errors: %s, messages: %s", elems.message, elems.err)
 		} else if !quiet {
 			fmt.Printf(" %s", elems.message)
 		}
