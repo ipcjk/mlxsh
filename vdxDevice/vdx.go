@@ -43,7 +43,7 @@ func (b *vdxDevice) Connect() (err error) {
 	prompt, err := b.Router.ReadTill(b.RTC, b.PromptReadTriggers)
 
 	if err := b.DetectSetPrompt(prompt); err != nil {
-		return fmt.Errorf("Detect prompt: %s", err)
+		return fmt.Errorf("detect prompt: %s", err)
 	}
 
 	if _, err = b.skipPageDisplayMode(); err != nil {
@@ -64,7 +64,7 @@ func (b *vdxDevice) DetectSetPrompt(prompt string) error {
 func (b *vdxDevice) write(command string) error {
 	_, err := b.SSHStdinPipe.Write([]byte(command))
 	if err != nil {
-		return fmt.Errorf("Cant write to the ssh connection %s", err)
+		return fmt.Errorf("can't write to the ssh connection %s", err)
 	}
 
 	if b.RTC.Debug {
@@ -81,7 +81,7 @@ func (b *vdxDevice) ConfigureTerminalMode() error {
 
 	_, err := b.ReadTill(b.RTC, []string{"(config)#"})
 	if err != nil {
-		return fmt.Errorf("Cant find configure prompt: %s", err)
+		return fmt.Errorf("can't find configure prompt: %s", err)
 	}
 
 	if b.RTC.Debug {
@@ -92,7 +92,7 @@ func (b *vdxDevice) ConfigureTerminalMode() error {
 
 func (b *vdxDevice) ExecPrivilegedMode(command string) error {
 	if err := b.SwitchMode("sshEnabled"); err != nil {
-		return fmt.Errorf("Cant switch to privileged mode: %s", err)
+		return fmt.Errorf("can't switch to privileged mode: %s", err)
 	}
 
 	if err := b.Write(b.RTC, command+"\n"); err != nil {
@@ -100,14 +100,14 @@ func (b *vdxDevice) ExecPrivilegedMode(command string) error {
 	}
 	_, err := b.ReadTillEnabledPrompt(b.RTC)
 	if err != nil {
-		return fmt.Errorf("Cant find  privileged mode: %s", err)
+		return fmt.Errorf("can't find  privileged mode: %s", err)
 	}
 	return nil
 }
 
 func (b *vdxDevice) skipPageDisplayMode() (string, error) {
 	if err := b.SwitchMode("sshEnabled"); err != nil {
-		return "", fmt.Errorf("Cant switch to enabled mode to execute terminal-length: %s", err)
+		return "", fmt.Errorf("can't switch to enabled mode to execute terminal-length: %s", err)
 	}
 
 	if err := b.Write(b.RTC, "terminal length 0\r\n"); err != nil {
@@ -163,7 +163,7 @@ func (b *vdxDevice) PasteConfiguration(configuration io.Reader) (err error) {
 
 func (b *vdxDevice) RunCommands(commands io.Reader) (err error) {
 	if err = b.SwitchMode("sshEnabled"); err != nil {
-		return fmt.Errorf("Cant switch to privileged mode: %s", err)
+		return fmt.Errorf("can't switch to privileged mode: %s", err)
 	}
 
 	return b.Router.RunCommands(b.RTC, commands)
