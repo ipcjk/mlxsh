@@ -260,6 +260,10 @@ reader line-by-line and inject configuration statements
 func (ro *Router) PasteConfiguration(rtc RunTimeConfig, configuration io.Reader) (err error) {
 	scanner := bufio.NewScanner(configuration)
 	for scanner.Scan() {
+		if strings.HasPrefix(scanner.Text(), "#") {
+			continue
+		}
+
 		if err := ro.Write(rtc, scanner.Text()+"\n"); err != nil {
 			return err
 		}
