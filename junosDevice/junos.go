@@ -56,10 +56,6 @@ func JunosDevice(Config router.RunTimeConfig) *junosDevice {
 }
 
 func (b *junosDevice) Connect() (err error) {
-
-	/* add some "insecure" crypto in cbc mode for older irons */
-	b.RTC.SSHClientConfig.Ciphers = append(b.RTC.SSHClientConfig.Ciphers, "aes128-cbc", "aes256-cbc", "3des-cbc")
-
 	if err = b.Router.SetupSSH(b.RTC.ConnectionAddr, b.RTC.SSHClientConfig, false); err != nil {
 		return err
 	}
