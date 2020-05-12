@@ -25,6 +25,22 @@ func SlxDevice(Config router.RunTimeConfig) *slxDevice {
 	return &slxDevice{
 		RTC: Config,
 		Router: router.Router{
+			CommandRewrite: map[string]string{
+				"mlxsh_log":        "show logging",
+				"mlxsh_audit":      "show logging",
+				"mlxsh_chassis":    "show chassis",
+				"mlxsh_route":      "show ip route",
+				"mlxsh_route6":     "show ipv6 route",
+				"mlxsh_include":    "include",
+				"mlxsh_pipe":       "|",
+				"mlxsh_route_sum":  "show ip route summary",
+				"mlxsh_route6_sum": "show ipv6 route summary",
+				"mlxsh_bgp":        "show ip bgp summary",
+				"mlxsh_bgp6":       "show ipv6 bgp summary",
+				"mlxsh_bgpn":       "show ip bgp neighbors",
+				"mlxsh_bgpn6":      "show ipv6 bgp neighbors",
+				"mlxsh_vlans":      "show vlan brief",
+			},
 			PromptModes:        make(map[string]string),
 			PromptDetect:       `[@?\.\d\w-]+# ?$`,
 			PromptReadTriggers: []string{"# "},

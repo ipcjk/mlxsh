@@ -29,6 +29,22 @@ func JunosDevice(Config router.RunTimeConfig) *junosDevice {
 	return &junosDevice{
 		RTC: Config,
 		Router: router.Router{
+			CommandRewrite: map[string]string{
+				"mlxsh_log":        "show log messages",
+				"mlxsh_audit":      "show logging",
+				"mlxsh_chassis":    "show chassis hardware",
+				"mlxsh_route":      "show route table inet.0",
+				"mlxsh_route6":     "show route table inet6.0",
+				"mlxsh_include":    "match",
+				"mlxsh_pipe":       "|",
+				"mlxsh_route_sum":  "show route summary table inet.0",
+				"mlxsh_route6_sum": "show route summary table inet6.0",
+				"mlxsh_bgp":        "show bgp summary",
+				"mlxsh_bgp6":       "show bgp summary",
+				"mlxsh_bgpn":       "show bgp neighbor",
+				"mlxsh_bgpn6":      "show bgp neighbor",
+				"mlxsh_vlans":      "show vlans",
+			},
 			PromptModes:        make(map[string]string),
 			ErrorMatches:       regexp.MustCompile(configureErrors),
 			PromptDetect:       `[@?\.\d\w-]+> ?$`,
@@ -41,6 +57,9 @@ func JunosDevice(Config router.RunTimeConfig) *junosDevice {
 
 func (b *junosDevice) Connect() (err error) {
 
+	/* add some "insecure" crypto in cbc mode for older irons */
+	b.RTC.SSHClientConfig.Ciphers = append(b.RTC.SSHClientConfig.Ciphers, "aes128-cbc", "aes256-cbc", "3des-cbc")
+
 	if err = b.Router.SetupSSH(b.RTC.ConnectionAddr, b.RTC.SSHClientConfig, false); err != nil {
 		return err
 	}
@@ -48,7 +67,7 @@ func (b *junosDevice) Connect() (err error) {
 	/* JunOS  uses `> ` for prompt */
 	prompt, err := b.Router.ReadTill(b.RTC, b.PromptReadTriggers)
 	if err := b.DetectSetPrompt(prompt); err != nil {
-		return fmt.Errorf("Detect prompt: %s", err)
+		return fmt.Errorf("detect prompt: %s", err)
 	}
 
 	if _, err = b.skipPageDisplayMode(); err != nil {

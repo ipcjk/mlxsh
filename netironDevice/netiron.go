@@ -23,6 +23,22 @@ func NetironDevice(Config router.RunTimeConfig) *netironDevice {
 	return &netironDevice{
 		RTC: Config,
 		Router: router.Router{
+			CommandRewrite: map[string]string{
+				"mlxsh_log":        "show logging raslog",
+				"mlxsh_audit":      "show logging auditlog",
+				"mlxsh_chassis":    "show chassis",
+				"mlxsh_route":      "show ip route",
+				"mlxsh_route6":     "show ipv6 route",
+				"mlxsh_include":    "include",
+				"mlxsh_pipe":       "|",
+				"mlxsh_route_sum":  "show ip route summary",
+				"mlxsh_route6_sum": "show ipv6 route summary",
+				"mlxsh_bgp":        "show ip bgp summary",
+				"mlxsh_bgp6":       "show ipv6 bgp summary",
+				"mlxsh_bgpn":       "show ip bgp neighbors",
+				"mlxsh_bgpn6":      "show ipv6 bgp neighbors",
+				"mlxsh_vlans":      "show vlan brief",
+			},
 			PromptReadTriggers: []string{">", "#"},
 			PromptModes:        make(map[string]string),
 			ErrorMatches:       regexp.MustCompile(configureErrors)}}
