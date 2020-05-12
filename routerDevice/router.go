@@ -3,6 +3,7 @@ package router
 import (
 	"bufio"
 	"fmt"
+	"github.com/ipcjk/mlxsh/libssh"
 	"io"
 	"os"
 	"regexp"
@@ -10,7 +11,6 @@ import (
 	"time"
 
 	"github.com/ipcjk/mlxsh/libhost"
-	"github.com/ipcjk/mlxsh/libssh"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -45,6 +45,10 @@ type Router struct {
 	/* ErrorMatches is a regex to scan for error messages in the configuration terminal */
 	ErrorMatches *regexp.Regexp
 
+	/* Command-Rewriter for general commands, e.g. 'sc:show_log => show logging' */
+	CommandRewrite map[string]string
+
+	/* Manage the SSH connection */
 	SSHConnection *ssh.Client
 	SSHSession    *ssh.Session
 	SSHStdinPipe  io.WriteCloser
@@ -59,6 +63,7 @@ type Router struct {
 connection and open a remote shell, optional a full
 pseudo terminal */
 func (ro *Router) SetupSSH(addr string, clientConfig *ssh.ClientConfig, requestPty bool) (err error) {
+
 	ro.SSHConnection, err = ssh.Dial("tcp", addr, clientConfig)
 	if err != nil {
 		return err
@@ -169,28 +174,9 @@ func GenerateDefaults(config *RunTimeConfig) {
 	/* Add default ciphers */
 	sshClientConfig.SetDefaults()
 	/* Add old ciphers for older Ironware switches */
-	sshClientConfig.Ciphers = append(sshClientConfig.Ciphers, "aes128-cbc", "3des-cbc")
+	sshClientConfig.Ciphers = append(sshClientConfig.Ciphers, "aes128-cbc", "aes256-cbc", "3des-cbc")
 
-	/* Check if StrictHostKeyCheck is needed for this host */
-	if config.StrictHostCheck {
-		/* Try to open our known-host file */
-		file, err := os.Open(config.KnownHosts)
-		if err != nil {
-			fmt.Fprintf(config.W, "Fatal: Cant open known ssh hosts file for strict ssh host authentication")
-		}
-		defer file.Close()
-
-		/* Search a matching hostkey */
-		config.Hostkey = libssh.SearchHostKey(file, config.Hostname, config.SSHIP, config.SSHPort)
-
-		if config.Hostkey != nil {
-			sshClientConfig.HostKeyCallback = ssh.FixedHostKey(config.Hostkey)
-		} else {
-			fmt.Fprintf(config.W, "Fatal: Cant load host key for strict ssh host authentication")
-		}
-	} else {
-		sshClientConfig.HostKeyCallback = ssh.InsecureIgnoreHostKey()
-	}
+	sshClientConfig.HostKeyCallback = ssh.InsecureIgnoreHostKey()
 
 	/* Use our private key if given on command-line */
 	/* Allow authentication with ssh dsa or rsa key */
@@ -320,7 +306,17 @@ func (ro *Router) RunCommands(rtc RunTimeConfig, commands io.Reader) (err error)
 
 	scanner := bufio.NewScanner(commands)
 	for scanner.Scan() {
-		if err := ro.Write(rtc, scanner.Text()+"\n"); err != nil {
+		line := strings.TrimSpace(scanner.Text())
+
+		/* Does the command start with mlxsh_? Then guess it is a command with replacement characters?*/
+		if strings.HasPrefix(line, "mlxsh_") {
+			/* stupid, but works, loop all rewrites and replace all patterns */
+			for k, v := range ro.CommandRewrite {
+				line = strings.ReplaceAll(line, k, v)
+			}
+		}
+
+		if err := ro.Write(rtc, line+"\n"); err != nil {
 			return err
 		}
 		val, err := ro.ReadTillEnabledPrompt(rtc)

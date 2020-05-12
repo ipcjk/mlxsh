@@ -1,14 +1,14 @@
-- Hostname: rt1
-  Username: noc
-  Password: noc
+- Hostname: 192.168.1.76
+  Username: admin
+  Password: password
   EnablePassword: noc
-  DeviceType: MLXE
+  DeviceType: SLX
   KeyFile: /home/joergkost/.ssh/id_dsa
   SpeedMode: False
   Labels:
     location: dus
     environment: stage
     os: brocade
-    type: cer
+    type: slx
     bgp: yes
     ospf: yes
