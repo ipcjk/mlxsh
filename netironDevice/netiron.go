@@ -24,8 +24,8 @@ func NetironDevice(Config router.RunTimeConfig) *netironDevice {
 		RTC: Config,
 		Router: router.Router{
 			CommandRewrite: map[string]string{
-				"mlxsh_log":        "show logging raslog",
-				"mlxsh_audit":      "show logging auditlog",
+				"mlxsh_log":        "show logging",
+				"mlxsh_audit":      "show logging",
 				"mlxsh_chassis":    "show chassis",
 				"mlxsh_route":      "show ip route",
 				"mlxsh_route6":     "show ipv6 route",
