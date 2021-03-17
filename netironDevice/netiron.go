@@ -123,13 +123,21 @@ func (b *netironDevice) loginDialog() bool {
 		return false
 	}
 
-	_, err := b.Router.ReadTill(b.RTC, []string{"Password:"})
+	mode, err := b.Router.ReadTill(b.RTC, []string{"Password:", "#"})
 	if err != nil {
 		return false
 	}
 
-	if err := b.Router.Write(b.RTC, b.RTC.EnablePassword+"\n"); err != nil {
-		return false
+	if b.RTC.EnablePassword == "" && strings.Contains(mode, b.Router.PromptModes["sshEnabled"]) {
+		b.Router.PromptMode = "sshEnabled"
+		return true
+	}
+
+	/* Do we still need send an enable password? */
+	if b.RTC.EnablePassword != "" {
+		if err := b.Router.Write(b.RTC, b.RTC.EnablePassword+"\n"); err != nil {
+			return false
+		}
 	}
 
 	_, err = b.readTillEnabledPrompt()
