@@ -1,8 +1,8 @@
-- Hostname: 192.168.1.76
-  Username: admin
-  Password: password
+- Hostname: 192.168.1.66
+  Username: noc
+  Password: noc
   EnablePassword: noc
-  DeviceType: SLX
+  DeviceType: MLX
   KeyFile: /home/joergkost/.ssh/id_dsa
   SpeedMode: False
   Labels:
